@@ -1,0 +1,26 @@
+{
+  "_help": "raw_data_dir is relative to this repo root. home_timezone is used for US plays and for plays detected as VPN/unknown country.",
+  "raw_data_dir": "../Spotify Extended Streaming History",
+  "home_timezone": "America/New_York",
+  "country_timezones": {
+    "US": "America/New_York",
+    "BS": "America/Nassau",
+    "BZ": "America/Belize",
+    "MX": "America/Mexico_City",
+    "CR": "America/Costa_Rica",
+    "IS": "Atlantic/Reykjavik",
+    "PA": "America/Panama",
+    "BB": "America/Barbados",
+    "JP": "Asia/Tokyo",
+    "RO": "Europe/Bucharest",
+    "PL": "Europe/Warsaw"
+  },
+  "vpn_countries": ["JP", "RO", "PL"],
+  "vpn_detection": {
+    "_help": "Plays from vpn_countries are always treated as VPN (home timezone, excluded from trips). If auto is true, other short non-US runs with US plays within window_minutes on both sides are also treated as VPN (off by default: it misfires at trip edges).",
+    "auto": false,
+    "window_minutes": 90,
+    "max_run_hours": 12
+  },
+  "publish_countries": true
+}
