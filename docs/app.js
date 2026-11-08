@@ -847,11 +847,44 @@ function route() {
 function invalidate() { memoStore.clear(); }
 
 // docked player
+// Uses Spotify's iFrame API so one click on a play button also starts playback in the player.
+// If the API hasn't loaded (blocked or slow), falls back to the plain embed, which needs a second click.
+const SP = { api: null, ctl: null, pending: null, wantPlay: false, plain: false };
+window.onSpotifyIframeApiReady = api => { SP.api = api; if (SP.pending) { const s = SP.pending; SP.pending = null; play(s); } };
+function startPlaying() { // the player fires 'ready' each time a song finishes loading
+  if (!SP.wantPlay || !SP.ctl) return;
+  SP.wantPlay = false; SP.ctl.play();
+}
 function play(spec) {
   const [type, id] = spec.split(':'); if (!id) return;
-  const dock = $('#player'), frame = $('#playerFrame');
-  frame.src = `https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}?utm_source=generator&theme=0`;
+  const dock = $('#player');
   dock.hidden = false; document.body.classList.add('has-player');
+  const uri = `spotify:${type}:${id}`;
+  SP.wantPlay = true;
+  if (SP.ctl) { // reuse the player: load the new song, then play once it's ready
+    SP.ctl.loadUri(uri);
+    setTimeout(startPlaying, 2500); // backup in case no ready event arrives for this load
+    return;
+  }
+  if (SP.api && !SP.plain) {
+    const mount = document.createElement('div'); $('#playerMount').replaceChildren(mount);
+    SP.api.createController(mount, { uri, width: '100%', height: 80 }, ctl => {
+      SP.ctl = ctl;
+      ctl.addListener('ready', startPlaying);
+    });
+    return;
+  }
+  if (!SP.plain) { // API still loading: wait briefly, then fall back to the plain embed
+    SP.pending = spec;
+    setTimeout(() => { if (SP.pending === spec && !SP.api) { SP.pending = null; SP.plain = true; play(spec); } }, 2500);
+    return;
+  }
+  $('#playerMount').innerHTML = `<iframe title="Spotify player" src="https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+}
+function closePlayer() {
+  SP.wantPlay = false; SP.pending = null;
+  if (SP.ctl) SP.ctl.pause(); else $('#playerMount').innerHTML = '';
+  $('#player').hidden = true; document.body.classList.remove('has-player');
 }
 
 // search
@@ -916,7 +949,7 @@ async function init() {
     if (e.target.closest('#searchResults a')) { s.value = ''; closeSearch(); }
   });
   document.addEventListener('keydown', e => { if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); s.focus(); } });
-  $('#playerClose').onclick = () => { $('#playerFrame').src = 'about:blank'; $('#player').hidden = true; document.body.classList.remove('has-player'); };
+  $('#playerClose').onclick = closePlayer;
   $('#themeBtn').onclick = () => {
     const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     document.documentElement.dataset.theme = dark ? 'light' : 'dark';

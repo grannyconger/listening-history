@@ -40,12 +40,13 @@
   <main id="view" tabindex="-1"><p class="loading">Loading your listening history</p></main>
   <div id="tip" class="tip" role="tooltip" hidden></div>
   <aside id="player" class="player" hidden aria-label="Player">
-    <iframe id="playerFrame" title="Spotify player" src="about:blank" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+    <div id="playerMount" class="player-mount"></div>
     <button id="playerClose" class="btn ghost icon" type="button" aria-label="Close player">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
   </aside>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="app.js"></script>
+  <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
 </html>
