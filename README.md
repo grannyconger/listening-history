@@ -2,8 +2,7 @@
 
 A static site for exploring a full Spotify Extended Streaming History export (2015 → today):
 overview, Wrapped for any year, calendar heatmap, searchable library, artist and song pages,
-trends and an artist race, on-this-day, habits, sessions, discovery, places, devices,
-podcasts & audiobooks, and a cover wall.
+trends and an artist race, on-this-day, habits, sessions, discovery, podcasts and audiobooks, and a cover wall.
 
 Everything runs in the browser from pre-built JSON in `docs/data/`. The site is served from `docs/` (GitHub Pages: *Settings → Pages → Deploy from branch → `main` / `docs`*).
 
@@ -41,12 +40,18 @@ Edit the file and re-run `build_data.py` to add or change rules.
 
 ## Privacy
 
-The published data **does not** include IP addresses, device serial numbers, usernames or offline timestamps.
-It **does** include every track/podcast/audiobook played with timestamps, the device type, and the country
-(so the Places page can show trips). Set `"publish_countries": false` in `config/settings.json` to drop countries.
+The published data includes every track, podcast and audiobook played, with timestamps and the exclusion-rule
+flags. It does **not** include IP addresses, usernames, devices, countries, trips or offline timestamps.
+To publish country/trip or device data again, set `publish_countries` / `publish_devices` to `true` in
+`config/settings.json` (the site's Places and Devices pages were removed and would need restoring).
 
-GitHub Pages sites are public even when the repository is private (unless you're on GitHub Enterprise with
-private Pages). The page asks search engines not to index it (`noindex`), but anyone with the URL can view it.
+The repository and the GitHub Pages site are public. The page asks search engines not to index it.
+
+## Design
+
+The site follows a calm, presenter-style rule set: no cards, boxes, pills or gradients, square corners, big type and
+white space. Colors keep one meaning everywhere (blue music, orange podcasts, green audiobooks, red excluded), and
+shading appears only inside heatmaps.
 
 ## Cover art
 

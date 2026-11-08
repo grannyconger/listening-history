@@ -33,7 +33,7 @@
   <dialog id="rulesDlg" class="dialog">
     <form method="dialog">
       <h2>Exclusion rules</h2>
-      <p class="muted">When <strong>Personal only</strong> is on, plays matching any checked rule are left out of every chart, list and total. Defaults come from <code>config/exclusions.json</code>; your changes here are saved in this browser.</p>
+      <p class="muted">With Personal only on, checked rules hide their plays from every chart, list and total. Changes are saved in this browser.</p>
       <div id="rulesList"></div>
       <div class="dlg-actions">
         <button type="button" id="rulesReset" class="btn ghost">Reset to defaults</button>
@@ -43,7 +43,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

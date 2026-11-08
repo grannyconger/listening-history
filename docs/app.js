@@ -55,7 +55,7 @@ function decode(pl) {
   P.t = new Float64Array(n); let acc = 0;
   for (let i = 0; i < n; i++) { acc += pl.t[i]; P.t[i] = acc; }
   P.s = Int32Array.from(pl.s); P.k = Uint8Array.from(pl.k); P.i = Int32Array.from(pl.i);
-  P.d = Uint8Array.from(pl.d); P.rs = Uint8Array.from(pl.rs); P.re = Uint8Array.from(pl.re);
+  P.rs = Uint8Array.from(pl.rs); P.re = Uint8Array.from(pl.re);
   P.f = Uint8Array.from(pl.f); P.x = Int32Array.from(pl.x);
   P.day = new Int32Array(n); P.year = new Uint16Array(n); P.mon = new Uint8Array(n); P.hour = new Uint8Array(n); P.dow = new Uint8Array(n);
   P.artist = new Int32Array(n); P.album = new Int32Array(n); P.show = new Int32Array(n);
@@ -95,7 +95,7 @@ function scope(year = F.year) {
 function scopeLabel(useYear = true) {
   const parts = [useYear && F.year !== 'all' ? String(F.year) : 'All years'];
   const on = D.meta.rules.filter(r => F.rules[r.id]).length;
-  parts.push(F.personal ? `personal listening (${on} exclusion rule${on === 1 ? '' : 's'})` : 'everything, nothing excluded');
+  parts.push(F.personal ? 'personal listening' : 'everything');
   return parts.join(' · ');
 }
 
@@ -207,7 +207,7 @@ function barChart(el, { data, height = 220, fmt = v => fmtInt(v), color = 'var(-
   g.append('line').attr('x1', 0).attr('x2', iw).attr('y1', ih).attr('y2', ih).attr('stroke', 'var(--axis)');
   const bars = g.selectAll('.b').data(data).join('g').attr('class', 'b');
   bars.append('path').attr('d', d => barPath(x(d.key), y(d.value), x.bandwidth(), ih - y(d.value), Math.min(4, x.bandwidth() / 2)))
-    .attr('fill', d => (highlight != null && d.key !== highlight ? 'var(--seq-2)' : color));
+    .attr('fill', d => (highlight != null && d.key !== highlight ? 'var(--axis)' : color));
   bars.append('rect').attr('x', d => x(d.key) - x.step() * x.paddingInner() / 2).attr('width', x.step()).attr('y', 0).attr('height', ih).attr('fill', 'transparent')
     .style('cursor', onClick ? 'pointer' : 'default')
     .on('mouseenter', (ev, d) => tip.show(d.tip || `<b>${esc(d.label)}</b><br>${esc(fmt(d.value))}`, ev)).on('mousemove', ev => tip.move(ev)).on('mouseleave', () => tip.hide())
@@ -233,7 +233,7 @@ function stackedBars(el, { keys, data, height = 240, fmt = v => fmtInt(v), onCli
       const v = d.values[k.key], y0 = y(base), y1 = y(base + v), top = si === segs.length - 1;
       const h = Math.max(0, y0 - y1 - (si > 0 ? 2 : 0)); // 2px surface gap between segments
       g.append('path').attr('d', top ? barPath(x(d.key), y1, x.bandwidth(), h) : `M${x(d.key)},${y1}h${x.bandwidth()}v${h}h${-x.bandwidth()}Z`)
-        .attr('fill', k.color).attr('opacity', highlight != null && highlight !== d.key ? 0.35 : 1);
+        .attr('fill', highlight != null && highlight !== d.key ? 'var(--axis)' : k.color);
       base += v;
     });
   });
@@ -309,7 +309,7 @@ function topTracksList(st, n = 10) {
 const embed = (type, id) => id ? `<iframe class="embed" src="https://open.spotify.com/embed/${type}/${esc(id)}?utm_source=generator" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Spotify player"></iframe>` : '';
 function yearChips(cur, base, includeAll = false) {
   const ys = P.years.filter(y => itemStats(y).totals.total > 3600 * 3 || y === cur);
-  return `<div class="chips">${includeAll ? `<a class="chip ${cur === 'all' ? 'on' : ''}" href="${base}all">All</a>` : ''}${ys.map(y => `<a class="chip ${y === cur ? 'on' : ''}" href="${base}${y}">${y}</a>`).join('')}</div>`;
+  return `<nav class="picker" aria-label="Year">${includeAll ? `<a class="${cur === 'all' ? 'on' : ''}" href="${base}all">All</a>` : ''}${ys.map(y => `<a class="${y === cur ? 'on' : ''}" ${y === cur ? 'aria-current="true"' : ''} href="${base}${y}">${y}</a>`).join('')}</nav>`;
 }
 
 // ================================================================ VIEWS
@@ -319,14 +319,13 @@ const V = {};
 V.overview = () => {
   const st = itemStats(), T = st.totals;
   const nTracks = st.tracks.secs.filter(v => v > 0).length, nArtists = st.artists.secs.filter(v => v > 0).length;
-  view().innerHTML = head('Your listening', 'Every stream since your first one, from the extended streaming history export.') + `
+  view().innerHTML = head('Your listening', `Spotify streams from ${MONTH[dateOf(P.t[0]).getUTCMonth()]} ${dateOf(P.t[0]).getUTCFullYear()} to ${MONTH[dateOf(P.t[P.n - 1]).getUTCMonth()]} ${dateOf(P.t[P.n - 1]).getUTCFullYear()}`) + `
     <div class="tiles">
       ${tile(fmtInt(T.total / 3600), 'hours listened', `≈ ${fmtInt(T.total / 86400)} full days`)}
       ${tile(fmtInt(T.plays), 'streams (30 s +)')}
       ${tile(fmtInt(nTracks), 'different songs')}
       ${tile(fmtInt(nArtists), 'artists')}
       ${tile(fmtInt(T.days), 'days with listening')}
-      ${tile(fmtDate(T.first).replace(/ \d+,/, ''), 'first stream')}
     </div>
     <div class="card"><h2>Hours per year</h2><div class="sub">Click a year to filter the whole site to it.</div><div class="chart" id="c-years"></div></div>
     <div class="grid g2">
@@ -357,11 +356,10 @@ V.overview = () => {
   $('#milestones').innerHTML = `<table class="tbl"><thead><tr><th class="r">Hours</th><th>Reached</th><th>Song playing</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
   const M = D.meta, exclH = D.meta.rules.filter(r => F.rules[r.id]).reduce((s, r) => s + r.hours, 0);
   $('#dq').innerHTML = `<ul class="muted" style="padding-left:18px;margin:0">
-    <li>${fmtInt(M.records_raw)} raw records → <b>${fmtInt(M.duplicates_removed)}</b> exact duplicates removed (identical in every field).</li>
-    <li>${M.vpn_runs.reduce((s, v) => s + v.plays, 0)} plays logged in ${[...new Set(M.vpn_runs.map(v => v.country))].map(c => D.meta.countries.find(x => x.code === c)?.name || c).join(', ')} came through a VPN; they count as home listening.</li>
-    <li>Times are local: ${esc(M.home_timezone.replace('_', ' '))} at home, local time on trips. The export stamps each stream when it <em>ended</em>; start times are back-calculated.</li>
-    <li>Spotify didn't record skips before 2022 (every play says "not skipped"), so skip analysis uses how each song ended instead.</li>
-    <li>IP addresses, device serial numbers and offline timestamps are stripped from the published data.</li>
+    <li>${fmtInt(M.duplicates_removed)} exact duplicate records were removed.</li>
+    <li>Times are shown in local time. Spotify records the moment each stream ended, so start times are worked out from that.</li>
+    <li>Spotify did not record skips before 2022. Skip numbers come from how each song ended instead.</li>
+    <li>IP addresses, devices and locations are not published.</li>
     <li>Exclusion rules currently ${F.personal ? `hide about <b>${fmtInt(exclH)} h</b>` : 'are <b>off</b>'} · <a href="#/excluded">review excluded plays</a>.</li></ul>`;
 };
 
@@ -388,10 +386,9 @@ V.wrapped = ([yr]) => {
   const bestDay = [...dayS].sort((a, b) => b[1] - a[1])[0];
   const peakHour = hourS.indexOf(Math.max(...hourS));
   const topAlbum = topN(st.albums.secs, 1)[0], topShow = topN(st.shows.secs, 1)[0], topBook = topN(st.books.secs, 1)[0];
-  const trips = D.meta.trips.filter(t => t.year === Y && t.hours >= 0.5);
   const ta = topN(st.artists.secs, 1)[0];
-  view().innerHTML = head(`${Y} Wrapped`, 'Your year in listening, any year you like.', false) + yearChips(Y, '#/wrapped/') + `
-    <div class="wrapped-hero" style="margin-top:16px">
+  view().innerHTML = head(`${Y} Wrapped`, '', false) + yearChips(Y, '#/wrapped/') + `
+    <div class="wrapped-hero">
       <div class="big num">${fmtInt(T.total / 60)}</div><p>minutes listened in ${Y} · ${fmtInt(T.plays)} streams · ${fmtInt(T.days)} days</p>
     </div>
     <div class="grid g3">
@@ -411,7 +408,6 @@ V.wrapped = ([yr]) => {
       ${fact('Songs played to the end', pct(done / started))}
       ${fact('Top podcast', topShow != null ? `${esc(D.lib.shows[topShow])} · ${fmtH(st.shows.secs[topShow])}` : '–')}
       ${fact('Top audiobook', topBook != null ? `${esc(D.lib.books[topBook][0])} · ${fmtH(st.books.secs[topBook])}` : '–')}
-      ${fact('Trips', trips.length ? trips.map(t => esc(t.name)).join(', ') : 'none recorded')}
       ${fact('Different songs', fmtInt(st.tracks.secs.filter(v => v > 0).length))}
     </div></div>`;
   barChart($('#c-mon'), { data: MON.map((m, i) => ({ key: i, label: m, full: MONTH[i], value: monS[i] / 3600 })), fmt: v => fmtHnum(v * 3600) + ' h', height: 200 });
@@ -433,7 +429,7 @@ V.calendar = ([dayArg]) => {
   const thr = [0.5, 1, 2, 3.5, 6].map(h => h * 3600);
   const color = seqScale(thr);
   const years = F.year === 'all' ? P.years.slice().reverse() : [+F.year];
-  view().innerHTML = head('Calendar', 'Every day you listened. Hover for the day, click to see what played.') + `
+  view().innerHTML = head('Calendar', 'Click a day to list every play') + `
     <div class="card"><div class="toolbar" style="justify-content:space-between">${seqLegend(thr, v => fmtH(v))}<span class="faint" style="font-size:12px">Mon → Sun top to bottom</span></div><div id="cal"></div></div>
     <div class="card" id="dayPanel"><p class="muted">Click a day to list its plays.</p></div>`;
   const wrap = $('#cal'), w = wrap.clientWidth - 50, cell = Math.max(6, Math.min(14, Math.floor(w / 54) - 2)), gap = 2;
@@ -449,7 +445,7 @@ V.calendar = ([dayArg]) => {
     const days = d3.range(jan1, dec31 + 1);
     svg.append('g').attr('transform', 'translate(0,14)').selectAll('rect').data(days).join('rect')
       .attr('x', d => Math.floor((d - jan1 + off) / 7) * (cell + gap)).attr('y', d => (((d % 7) + 10) % 7) * (cell + gap))
-      .attr('width', cell).attr('height', cell).attr('rx', 2).attr('fill', d => color(dayS.get(d) || 0))
+      .attr('width', cell).attr('height', cell).attr('fill', d => color(dayS.get(d) || 0))
       .attr('stroke', d => (+dayArg === d ? 'var(--text-primary)' : 'none')).attr('stroke-width', 1.5)
       .style('cursor', 'pointer')
       .on('mouseenter', (ev, d) => {
@@ -470,7 +466,7 @@ function dayPanel(day) {
   $('#dayPanel').innerHTML = `<h2>${DOW[((day % 7) + 10) % 7]}, ${fmtDay(day)}</h2><div class="sub">${fmtH(total)} of personal listening · ${ps.length} plays logged · <a href="#/onthisday/${dateOf(day * 86400).getUTCMonth() + 1}-${dateOf(day * 86400).getUTCDate()}">this date in other years</a></div>
     <div class="day-list table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Item</th><th class="r">Played</th><th>Note</th></tr></thead><tbody>${ps.map(p => {
       const pl = playLabel(p), ex = P.x[p] & effMask(), names = rules.filter(r => ex >> r.bit & 1).map(r => r.label);
-      return `<tr style="${ex ? 'opacity:.55' : ''}"><td class="num">${fmtTime(P.t[p])}</td><td><div class="who">${img(pl.url, pl.title, 'sm')}<div><div class="t">${pl.href ? `<a href="${pl.href}">${esc(pl.title)}</a>` : esc(pl.title)}</div><div class="a">${pl.subHref ? `<a href="${pl.subHref}">${esc(pl.sub)}</a>` : esc(pl.sub)}</div></div></div></td><td class="r num">${P.s[p] >= 60 ? Math.round(P.s[p] / 60) + ' min' : P.s[p] + ' s'}</td><td>${names.length ? `<span class="excl">excluded: ${esc(names.join(', '))}</span>` : (P.re[p] === REASON.fwdbtn ? '<span class="faint">skipped</span>' : '')}</td></tr>`;
+      return `<tr class="${ex ? 'is-excl' : ''}"><td class="num">${fmtTime(P.t[p])}</td><td><div class="who">${img(pl.url, pl.title, 'sm')}<div><div class="t">${pl.href ? `<a href="${pl.href}">${esc(pl.title)}</a>` : esc(pl.title)}</div><div class="a">${pl.subHref ? `<a href="${pl.subHref}">${esc(pl.sub)}</a>` : esc(pl.sub)}</div></div></div></td><td class="r num">${P.s[p] >= 60 ? Math.round(P.s[p] / 60) + ' min' : P.s[p] + ' s'}</td><td>${names.length ? `<span class="excl">excluded: ${esc(names.join(', '))}</span>` : (P.re[p] === REASON.fwdbtn ? '<span class="faint">skipped</span>' : '')}</td></tr>`;
     }).join('')}</tbody></table></div>`;
   $('#dayPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -479,10 +475,10 @@ function dayPanel(day) {
 const LIB = { tab: 'tracks', q: '', sort: 'secs', shown: 100 };
 V.library = ([tab]) => {
   if (tab && tab !== LIB.tab) { LIB.tab = tab; LIB.shown = 100; }
-  view().innerHTML = head('Library', 'Search every song, artist, album, podcast and audiobook you have played.') + `
+  view().innerHTML = head('Library', '') + `
     <div class="card">
       <div class="toolbar">
-        <div class="chips">${[['tracks', 'Songs'], ['artists', 'Artists'], ['albums', 'Albums'], ['shows', 'Podcasts'], ['books', 'Audiobooks']].map(([k, l]) => `<a class="chip ${LIB.tab === k ? 'on' : ''}" href="#/library/${k}">${l}</a>`).join('')}</div>
+        <nav class="picker" aria-label="Library section">${[['tracks', 'Songs'], ['artists', 'Artists'], ['albums', 'Albums'], ['shows', 'Podcasts'], ['books', 'Audiobooks']].map(([k, l]) => `<a class="${LIB.tab === k ? 'on' : ''}" href="#/library/${k}">${l}</a>`).join('')}</nav>
         <input id="q" class="input" type="search" placeholder="Search…" value="${esc(LIB.q)}" aria-label="Search library">
       </div>
       <div id="libTable" class="table-wrap"></div>
@@ -530,8 +526,8 @@ V.artist = ([aiS]) => {
   const rank = 1 + Array.prototype.filter.call(st.artists.secs, v => v > secs).length;
   const peak = [...monS].sort((a, b) => b[1] - a[1])[0];
   const topTracks = [...trS].sort((a, b) => b[1] - a[1]);
-  view().innerHTML = `<div class="hero">${img(artistUrl(ai), L.artists[ai], 'lg round')}<div class="meta"><div class="faint">Artist · #${rank} all-time</div><h1>${esc(L.artists[ai])}</h1>
-      <p class="muted">${fmtH(secs)} · ${fmtInt(plays)} streams · ${topTracks.length} songs · since ${fmtDate(first)}</p>${embed('track', L.tracks[topTracks[0][0]][3])}</div></div>
+  view().innerHTML = `<div class="hero">${img(artistUrl(ai), L.artists[ai], 'lg round')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
+      <p class="muted">Number ${rank} of all time · ${fmtH(secs)} · ${fmtInt(plays)} streams · ${topTracks.length} songs · since ${fmtDate(first)}</p>${embed('track', L.tracks[topTracks[0][0]][3])}</div></div>
     <div class="tiles">${tile(fmtDate(first), 'first listen')}${tile(fmtDate(last), 'latest listen')}${tile(`${MON[peak[0] % 12]} ${Math.floor(peak[0] / 12)}`, 'peak month', fmtH(peak[1]))}${tile(pct(done / started), 'played to the end')}${tile(pct(secs / allTime().totals.music, 1), 'of all your music')}</div>
     <div class="card"><h2>Listening over time</h2><div class="sub">hours per month</div><div class="chart" id="c-am"></div></div>
     <div class="grid g2">
@@ -562,7 +558,7 @@ V.track = ([tiS]) => {
   if (!started) { view().innerHTML = head(name, 'No plays for this song with the current filters.', false); return; }
   if (first < 0) { first = last = -1; }
   const peak = [...monP].sort((a, b) => b[1] - a[1])[0];
-  view().innerHTML = `<div class="hero">${img(trackUrl(ti), name, 'lg')}<div class="meta"><div class="faint">Song story</div><h1>${esc(name)}</h1>
+  view().innerHTML = `<div class="hero">${img(trackUrl(ti), name, 'lg')}<div class="meta"><h1>${esc(name)}</h1>
       <p class="muted">${artistLink(ai)} · ${esc(L.albums[al][0])}</p>${embed('track', id)}</div></div>
     <div class="tiles">${tile(fmtInt(plays), 'streams (30 s +)', fmtH(secs) + ' total')}${tile(first >= 0 ? fmtDate(P.t[first]) : '–', 'entered your life')}${tile(peak ? `${MON[peak[0] % 12]} ${Math.floor(peak[0] / 12)}` : '–', 'peak month', peak ? peak[1] + ' streams' : '')}${tile(last >= 0 ? fmtDate(P.t[last]) : '–', 'latest stream')}${tile(best.n + '×', 'most in a row', best.p >= 0 ? fmtDate(P.t[best.p]) : '')}${tile(pct(done / started), 'played to the end')}</div>
     <div class="card"><h2>The story so far</h2><div class="sub">streams per month</div><div class="chart" id="c-tm"></div></div>
@@ -577,8 +573,8 @@ V.track = ([tiS]) => {
 
 // ---------------- Trends: bump chart + bar race
 V.trends = () => {
-  view().innerHTML = head('Trends', 'How your favorite artists rose and fell.', false) + `
-    <div class="card"><h2>Top 10 artists each year</h2><div class="sub">Rank by hours. Hover an artist to trace them across years; click to open.</div><div class="chart" id="bump"></div></div>
+  view().innerHTML = head('Trends', '', false) + `
+    <div class="card"><h2>Top 10 artists each year</h2><div class="sub">Ranked by hours. Click a name to open that artist.</div><div class="chart" id="bump"></div></div>
     <div class="card"><h2>Artist race</h2><div class="sub">Cumulative hours, month by month.</div>
       <div class="toolbar"><button class="btn" id="raceBtn">Play</button><input type="range" id="raceSlider" min="0" value="0" style="flex:1;min-width:160px" aria-label="Month"><span id="raceLbl" class="num" style="font-weight:650;min-width:90px"></span></div>
       <div class="chart" id="race"></div></div>`;
@@ -601,18 +597,18 @@ function bumpChart(el) {
         .attr('fill', 'none').attr('stroke', 'var(--axis)').attr('stroke-width', 2);
     }
   });
-  const maxChars = Math.max(4, Math.floor(colW * 0.84 / 6.4));
+  const maxChars = Math.max(4, Math.floor(colW * 0.9 / 7.8));
   ranks.forEach((list, yi) => list.forEach((a, r) => {
     const gg = cells.append('g').attr('data-a', a).style('cursor', 'pointer');
-    gg.append('rect').attr('x', x(years[yi]) - colW * 0.42).attr('y', yy(r) - 12).attr('width', colW * 0.84).attr('height', 24).attr('rx', 6).attr('fill', 'var(--surface-2)');
+    gg.append('rect').attr('x', x(years[yi]) - colW * 0.42).attr('y', yy(r) - 12).attr('width', colW * 0.84).attr('height', 24).attr('fill', 'var(--page)');
     const nm = D.lib.artists[a];
     gg.append('text').attr('x', x(years[yi])).attr('y', yy(r) + 4).attr('text-anchor', 'middle').attr('class', 'lbl').text(nm.length > maxChars ? nm.slice(0, maxChars - 1) + '…' : nm);
     gg.on('mouseenter', ev => { hl(a); tip.show(`<b>${esc(nm)}</b>${tipRows(pos.get(a).map(([yi2, r2]) => [String(years[yi2]), `#${r2 + 1} · ${fmtH(itemStats(years[yi2]).artists.secs[a])}`]))}`, ev); })
       .on('mousemove', ev => tip.move(ev)).on('mouseleave', () => { hl(null); tip.hide(); }).on('click', () => { tip.hide(); location.hash = `#/artist/${a}`; });
   }));
   function hl(a) {
-    lines.selectAll('path').attr('stroke', function () { return a != null && +this.dataset.a === a ? 'var(--accent)' : 'var(--axis)'; }).attr('stroke-width', function () { return a != null && +this.dataset.a === a ? 3 : 2; }).attr('opacity', function () { return a == null || +this.dataset.a === a ? 1 : 0.35; });
-    cells.selectAll('g').each(function () { const on = a != null && +this.dataset.a === a; d3.select(this).select('rect').attr('fill', on ? 'var(--accent)' : 'var(--surface-2)'); d3.select(this).select('text').attr('fill', on ? '#fff' : null).attr('opacity', a == null || on ? 1 : 0.45); });
+    lines.selectAll('path').attr('stroke', function () { return a != null && +this.dataset.a === a ? 'var(--accent)' : 'var(--axis)'; }).attr('stroke-width', function () { return a != null && +this.dataset.a === a ? 3 : 2; });
+    cells.selectAll('g').each(function () { const on = a != null && +this.dataset.a === a; d3.select(this).select('text').attr('fill', a == null ? null : on ? 'var(--accent-ink)' : 'var(--text-muted)').attr('font-weight', on ? 700 : null); });
   }
   dataTable(el, ['Rank'].concat(years.map(String)), d3.range(10).map(r => [`#${r + 1}`].concat(ranks.map(l => (l[r] != null ? D.lib.artists[l[r]] : '')))));
 }
@@ -665,7 +661,7 @@ V.onthisday = ([md]) => {
     const top = [...c.values()].sort((a, b) => b.s - a.s).slice(0, 5);
     return `<div class="card"><h2><a href="#/calendar/${day}">${y}</a> <span class="faint" style="font-weight:400;font-size:14px">· ${DOW[((day % 7) + 10) % 7]} · ${fmtH(tot)} · first play ${fmtTime(P.t[ps[0]])}</span></h2>${rankList(top.map(o => { const pl = playLabel(o.p); return { url: pl.url, title: pl.title, titleHtml: pl.href ? `<a href="${pl.href}">${esc(pl.title)}</a>` : null, sub: pl.sub, value: fmtH(o.s) }; }))}</div>`;
   }).filter(Boolean);
-  view().innerHTML = head('On this day', `What you were listening to on ${MONTH[mo - 1]} ${dd} in every year.`, false) + `
+  view().innerHTML = head(`${MONTH[mo - 1]} ${dd} in past years`, '', false) + `
     <div class="toolbar"><select id="otdM" class="select" aria-label="Month">${MONTH.map((m, i) => `<option value="${i + 1}" ${i + 1 === mo ? 'selected' : ''}>${m}</option>`).join('')}</select>
     <select id="otdD" class="select" aria-label="Day">${d3.range(1, 32).map(i => `<option ${i === dd ? 'selected' : ''}>${i}</option>`).join('')}</select>
     <button class="btn ghost" id="otdPrev">← Previous day</button><button class="btn ghost" id="otdNext">Next day →</button><button class="btn ghost" id="otdToday">Today</button><button class="btn ghost" id="otdRand">Random date</button></div>
@@ -686,14 +682,12 @@ V.habits = () => {
   const yrs = P.years.filter(y => itemStats(y).totals.music > 20 * 3600);
   const beh = new Map(yrs.map(y => [y, { n: 0, done: 0, fwd: 0, shuf: 0, pick: 0 }]));
   for (let p = 0; p < P.n; p++) { if (!act[p] || P.k[p] !== 0) continue; const o = beh.get(P.year[p]); if (!o) continue; o.n++; if (P.re[p] === REASON.trackdone) o.done++; if (P.re[p] === REASON.fwdbtn) o.fwd++; if (P.f[p] & 1) o.shuf++; if (P.rs[p] === REASON.clickrow) o.pick++; }
-  view().innerHTML = head('Habits', 'When and how you listen.') + `
+  view().innerHTML = head('Habits', '') + `
     <div class="tiles">${tile(fmtH(total), 'listening in view')}${tile(fmtH(off), 'played offline')}${tile(fmtH(priv), 'in private sessions')}${tile(fmtH(vid), 'video (podcasts & clips)')}</div>
     <div class="card"><h2>Your listening clock</h2><div class="sub">hours by weekday and hour of day</div><div id="clock"></div></div>
-    <div class="grid g2">
-      <div class="card"><h2>Seasons</h2><div class="sub">hours by month of year</div><div class="chart" id="c-moy"></div></div>
-      <div class="card"><h2>How songs start and end</h2><div class="sub">share of music plays, by year (all years)</div><div class="chart" id="c-beh"></div>
-        <p class="faint" style="font-size:12px;margin-top:8px">Spotify's own "skipped" flag wasn't recorded before 2022, so "skipped with next" uses how each song ended instead.</p></div>
-    </div>
+    <div class="card"><h2>Seasons</h2><div class="sub">hours by month of year</div><div class="chart" id="c-moy"></div></div>
+    <div class="card"><h2>How songs start and end</h2><div class="sub">Share of music plays each year. Skips count songs ended with the next button, because Spotify did not record skips before 2022.</div>
+      <div class="grid g2" id="c-beh"></div></div>
     <div class="grid g2"><div class="card"><h2>Songs you finish</h2><div class="sub">artists with 150+ plays in view, highest share played to the end</div><div id="comp-hi"></div></div>
     <div class="card"><h2>Songs you skip</h2><div class="sub">lowest share played to the end</div><div id="comp-lo"></div></div></div>`;
   // clock heatmap
@@ -704,14 +698,17 @@ V.habits = () => {
   DOW.forEach((d, i) => svg.append('text').attr('x', 40).attr('y', i * ch + ch / 2 + 4).attr('text-anchor', 'end').attr('fill', 'var(--text-muted)').attr('font-size', 11).text(d));
   d3.range(0, 24, 3).forEach(h => svg.append('text').attr('x', 50 + h * cw + cw / 2).attr('y', 7 * ch + 16).attr('text-anchor', 'middle').attr('fill', 'var(--text-muted)').attr('font-size', 11).text(hourLabel(h)));
   for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) {
-    svg.append('rect').attr('x', 50 + h * cw).attr('y', d * ch).attr('width', cw - 2).attr('height', ch - 2).attr('rx', 3).attr('fill', color(grid[d][h]))
+    svg.append('rect').attr('x', 50 + h * cw).attr('y', d * ch).attr('width', cw - 2).attr('height', ch - 2).attr('fill', color(grid[d][h]))
       .on('mouseenter', ev => tip.show(`<b>${DOW[d]} ${hourLabel(h)}m</b>${tipRows([['Hours', fmtHnum(grid[d][h])], ['Share', pct(grid[d][h] / total, 1)]])}`, ev)).on('mousemove', ev => tip.move(ev)).on('mouseleave', () => tip.hide());
   }
   dataTable(el, ['Day'].concat(d3.range(24).map(hourLabel)), DOW.map((d, i) => [d].concat(Array.from(grid[i], v => fmtHnum(v)))));
   barChart($('#c-moy'), { data: MON.map((m, i) => ({ key: i, label: m, full: MONTH[i], value: monS[i] / 3600 })), fmt: v => fmtInt(v) + ' h', height: 200 });
-  const series = [['Played to the end', 'done', 'var(--series-1)'], ['Skipped with next', 'fwd', 'var(--series-2)'], ['Shuffle on', 'shuf', 'var(--series-3)'], ['Picked yourself', 'pick', 'var(--series-4)']]
-    .map(([name, k, color]) => ({ name, color, values: yrs.map(y => beh.get(y)[k] / beh.get(y).n) }));
-  lineChart($('#c-beh'), { series, xLabels: yrs.map(String), fmt: v => pct(v), yDomain: [0, 1], height: 220 });
+  // one small chart per measure, neutral ink, so blue/orange keep their single meanings (music/podcasts)
+  [['Played to the end', 'done'], ['Skipped with next', 'fwd'], ['Shuffle on', 'shuf'], ['Picked yourself', 'pick']].forEach(([name, k]) => {
+    const box = document.createElement('div'); box.innerHTML = `<h3>${esc(name)}</h3><div class="chart"></div>`;
+    $('#c-beh').appendChild(box);
+    lineChart(box.querySelector('.chart'), { series: [{ name, color: 'var(--text-primary)', values: yrs.map(y => beh.get(y)[k] / beh.get(y).n) }], xLabels: yrs.map(String), fmt: v => pct(v), yDomain: [0, 1], height: 170 });
+  });
   // completion
   const st = itemStats(), comp = new Map();
   for (let p = 0; p < P.n; p++) { if (!sc[p] || P.k[p] !== 0) continue; const a = P.artist[p]; let o = comp.get(a); if (!o) comp.set(a, o = [0, 0]); o[0]++; if (P.re[p] === REASON.trackdone) o[1]++; }
@@ -749,7 +746,7 @@ V.sessions = () => {
   }
   if (cur && cur.n >= 5) runs.push(cur);
   runs.sort((a, b) => b.n - a.n);
-  view().innerHTML = head('Sessions & binges', 'A session ends after 30 minutes of silence.') + `
+  view().innerHTML = head('Sessions and binges', 'A session ends after 30 minutes of silence') + `
     <div class="tiles">${tile(fmtInt(ss.length), 'sessions')}${tile(Math.round(med / 60) + ' min', 'typical (median) session')}${tile(Math.round(mean / 60) + ' min', 'average session')}${tile(longest[0] ? fmtH(longest[0].secs) : '–', 'longest session', longest[0] ? fmtDate(longest[0].start) : '')}</div>
     <div class="grid g2"><div class="card"><h2>Session lengths</h2><div class="sub">number of sessions</div><div class="chart" id="c-sl"></div></div>
     <div class="card"><h2>Average session by year</h2><div class="sub">minutes (all years)</div><div class="chart" id="c-sy"></div></div></div>
@@ -773,7 +770,7 @@ V.discovery = () => {
   for (let p = 0; p < P.n; p++) { if (!act[p] || P.k[p] !== 0) continue; const o = fresh.get(P.year[p]); if (!o) continue; o[1] += P.s[p]; if (isFinite(firstT[P.i[p]]) && dateOf(firstT[P.i[p]]).getUTCFullYear() === P.year[p]) o[0] += P.s[p]; }
   const st = allTime(), top = topN(st.artists.secs, 30).sort((a, b) => firstA[a] - firstA[b]);
   const lastT = P.t[P.n - 1], recent = topN(st.artists.secs, 15, a => firstA[a] > lastT - 365 * 86400);
-  view().innerHTML = head('Discovery', 'New music versus old favorites.', false) + `
+  view().innerHTML = head('Discovery', '', false) + `
     <div class="grid g2"><div class="card"><h2>New artists each year</h2><div class="sub">artists streamed for the first time</div><div class="chart" id="c-na"></div></div>
     <div class="card"><h2>Fresh vs familiar</h2><div class="sub">share of music hours on songs first heard that year</div><div class="chart" id="c-fr"></div></div></div>
     <div class="card"><h2>Your top 30 artists through the years</h2><div class="sub">hours per year, ordered by when you found them</div><div id="strip" class="table-wrap"></div></div>
@@ -785,63 +782,6 @@ V.discovery = () => {
   $('#strip').innerHTML = `${seqLegend(thr, fmtH)}<table class="tbl" style="margin-top:8px"><thead><tr><th>Artist</th>${ys.map(y => `<th class="r">${String(y).slice(2).padStart(3, "'")}</th>`).join('')}</tr></thead><tbody>${top.map((a, i) => `<tr><td class="name">${artistLink(a)}</td>${vals[i].map((v, j) => `<td title="${esc(D.lib.artists[a])} · ${ys[j]} · ${fmtH(v)}" style="padding:2px"><div style="height:22px;border-radius:4px;background:${color(v)}"></div></td>`).join('')}</tr>`).join('')}</tbody></table>`;
 };
 
-// ---------------- Places
-V.places = async () => {
-  const M = D.meta, mask = effMask(), byC = new Map();
-  let vpnS = 0, unk = 0;
-  Object.entries(M.country_secs || {}).forEach(([c, byMask]) => {
-    const s = Object.entries(byMask).reduce((a, [x, v]) => a + ((+x & mask) ? 0 : v), 0);
-    if (c === 'VPN') vpnS += s; else if (c === 'ZZ') unk += s; else if (s) byC.set(c, s);
-  });
-  const trips = M.trips;
-  view().innerHTML = head('Places', 'Where you listened, from the country Spotify logged for each stream. Trip dates are shown by month only.', false) + `
-    <div class="card"><h2>Countries</h2><div class="sub">Blue = trips abroad; gray-blue = home. VPN connections are counted as home.</div><div class="chart map" id="map"></div></div>
-    <div class="card"><h2>Trips</h2><div class="table-wrap"><table class="tbl"><thead><tr><th>Country</th><th>When</th><th>Length</th><th class="r">Listening</th><th>Soundtrack</th></tr></thead><tbody>
-      ${trips.map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.period)}</td><td>${esc(t.length)}</td><td class="r">${fmtH(t.hours * 3600)}</td><td class="name sub">${esc(t.top.join(', '))}</td></tr>`).join('')}</tbody></table></div></div>
-    <div class="grid g2"><div class="card"><h2>VPN connections</h2><div class="sub">Logged abroad but played from home - counted as home listening (${fmtH(vpnS)}).</div>
-      <table class="tbl"><thead><tr><th>Month</th><th>Logged as</th><th class="r">Plays</th></tr></thead><tbody>${M.vpn_runs.map(v => `<tr><td>${esc(v.month)}</td><td>${esc(M.countries.find(c => c.code === v.country)?.name || v.country)}</td><td class="r">${v.plays}</td></tr>`).join('')}</tbody></table></div>
-      <div class="card"><h2>Unknown country</h2><div class="sub">Spotify logged "ZZ" (no country) for ${fmtH(unk)} of listening, mostly short bursts in 2017–2020 - typical of in-flight Wi-Fi or a network Spotify couldn't place.</div></div></div>`;
-  let world;
-  try { world = await getJSON('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json'); } catch (e) { $('#map').innerHTML = '<p class="muted">Map unavailable offline.</p>'; return; }
-  const el = $('#map'); if (!el) return;
-  const w = el.clientWidth, h = Math.round(w * 0.5);
-  const feats = topojson.feature(world, world.objects.countries).features;
-  const proj = d3.geoNaturalEarth1().fitSize([w, h], { type: 'Sphere' }), path = d3.geoPath(proj);
-  const svg = d3.select(el).append('svg').attr('width', w).attr('height', h);
-  const byNum = new Map(M.countries.filter(c => c.iso_n).map(c => [c.iso_n, c]));
-  svg.append('path').attr('d', path({ type: 'Sphere' })).attr('fill', 'var(--surface-2)');
-  svg.selectAll('path.land').data(feats).join('path').attr('class', 'land').attr('d', path)
-    .attr('fill', f => { const c = byNum.get(+f.id); if (!c || !byC.get(c.code)) return 'var(--seq-0)'; return c.code === 'US' ? 'var(--seq-2)' : 'var(--series-1)'; })
-    .on('mouseenter', (ev, f) => { const c = byNum.get(+f.id); const s = c ? byC.get(c.code) : 0; if (!s) return; const tr = trips.filter(t => t.country === c.code); tip.show(`<b>${esc(c.name)}</b>${tipRows([['Listening', fmtH(s)]].concat(c.code !== 'US' ? [['Trips', String(tr.length)]] : []))}`, ev); })
-    .on('mousemove', ev => tip.move(ev)).on('mouseleave', () => tip.hide());
-  // small countries that 110m omits get a dot
-  const centers = { BB: [-59.55, 13.15], BS: [-77.4, 25.0] };
-  Object.entries(centers).forEach(([code, ll]) => { if (byC.get(code)) { const [x, y] = proj(ll); svg.append('circle').attr('cx', x).attr('cy', y).attr('r', 4).attr('fill', 'var(--series-1)').attr('stroke', 'var(--surface-1)').attr('stroke-width', 2); } });
-  dataTable(el, ['Country', 'Listening'], [...byC].sort((a, b) => b[1] - a[1]).map(([c, s]) => [M.countries.find(x => x.code === c).name, fmtH(s)]));
-};
-
-// ---------------- Devices
-V.devices = () => {
-  const act = active(), M = D.meta, dv = new Map();
-  for (let p = 0; p < P.n; p++) { if (!act[p]) continue; const d = P.d[p]; let o = dv.get(d); if (!o) dv.set(d, o = { secs: 0, first: Infinity, last: -Infinity }); o.secs += P.s[p]; o.first = Math.min(o.first, P.t[p]); o.last = Math.max(o.last, P.t[p]); }
-  const rows = [...dv].filter(([, o]) => o.secs > 1800).sort((a, b) => a[1].first - b[1].first);
-  view().innerHTML = head('Devices', 'What you listened on, and when.', false) + `
-    <div class="card"><h2>Device timeline</h2><div class="sub">bar spans first to last use; label shows total listening</div><div class="chart" id="gantt"></div>
-    <p class="faint" style="font-size:12px;margin-top:8px">From October 2022 Spotify stopped logging the iPhone model, so later phone listening shows as "iPhone (model not reported)".</p></div>`;
-  const el = $('#gantt'), m = { t: 20, r: 70, b: 6, l: 190 }, rh = 30;
-  const { g, iw } = frame(el, m.t + m.b + rows.length * rh, m);
-  const x = d3.scaleTime().domain([dateOf(P.t[0]), dateOf(P.t[P.n - 1])]).range([0, iw]);
-  g.append('g').attr('class', 'gridline').call(d3.axisTop(x).ticks(d3.timeYear.every(1)).tickSize(-rows.length * rh).tickFormat(d3.utcFormat('%Y'))).call(s => s.select('.domain').remove()).call(s => s.selectAll('line').attr('stroke', 'var(--grid)'));
-  rows.forEach(([d, o], i) => {
-    const x0 = x(dateOf(o.first)), x1 = Math.max(x0 + 4, x(dateOf(o.last)));
-    g.append('text').attr('class', 'lbl-strong').attr('x', -10).attr('y', i * rh + rh / 2 + 4).attr('text-anchor', 'end').text(M.devices[d]);
-    g.append('rect').attr('x', x0).attr('y', i * rh + 7).attr('width', x1 - x0).attr('height', rh - 14).attr('rx', 4).attr('fill', 'var(--series-1)')
-      .on('mouseenter', ev => tip.show(`<b>${esc(M.devices[d])}</b>${tipRows([['Listening', fmtH(o.secs)], ['First', fmtDate(o.first)], ['Last', fmtDate(o.last)]])}`, ev)).on('mousemove', ev => tip.move(ev)).on('mouseleave', () => tip.hide());
-    g.append('text').attr('class', 'lbl').attr('x', x1 + 6).attr('y', i * rh + rh / 2 + 4).text(fmtH(o.secs));
-  });
-  dataTable(el, ['Device', 'Listening', 'First', 'Last'], rows.map(([d, o]) => [M.devices[d], fmtH(o.secs), fmtDate(o.first), fmtDate(o.last)]));
-};
-
 // ---------------- Podcasts & audiobooks
 V.podcasts = () => {
   const st = itemStats(), act = active(), L = D.lib, py = new Map(), by = new Map();
@@ -849,7 +789,7 @@ V.podcasts = () => {
   const sc = scope(), eps = new Map(); for (let p = 0; p < P.n; p++) if (sc[p] && P.k[p] === 1) { const s = P.show[p]; if (!eps.has(s)) eps.set(s, new Set()); eps.get(s).add(P.i[p]); }
   const shows = topN(st.shows.secs, 40), books = topN(st.books.secs, 60, j => st.books.secs[j] > 300), topEps = topN(st.episodes.secs, 12);
   const ys = [...new Set([...py.keys(), ...by.keys()])].sort();
-  view().innerHTML = head('Podcasts & audiobooks', 'Everything that isn\'t music.') + `
+  view().innerHTML = head('Podcasts and audiobooks', '') + `
     <div class="card"><h2>Hours per year</h2><div class="chart" id="c-pb"></div></div>
     <div class="grid g2">
       <div class="card"><h2>Podcasts</h2><div class="table-wrap"><table class="tbl"><thead><tr><th>Show</th><th class="r">Hours</th><th class="r">Episodes</th><th>Last</th></tr></thead><tbody>
@@ -865,10 +805,10 @@ V.podcasts = () => {
 const COV = { what: 'albums', n: 100 };
 V.covers = () => {
   const st = itemStats(), S = st[COV.what], ids = topN(S.secs, COV.n), L = D.lib;
-  view().innerHTML = head('Cover wall', 'Your most-played albums and artists, sized by hours.') + `
-    <div class="toolbar"><div class="chips"><button class="chip ${COV.what === 'albums' ? 'on' : ''}" data-w="albums">Albums</button><button class="chip ${COV.what === 'artists' ? 'on' : ''}" data-w="artists">Artists</button></div>
+  view().innerHTML = head('Cover wall', 'Size shows hours played') + `
+    <div class="toolbar"><div class="picker"><button class="${COV.what === 'albums' ? 'on' : ''}" data-w="albums">Albums</button><button class="${COV.what === 'artists' ? 'on' : ''}" data-w="artists">Artists</button></div>
       <select class="select" id="covN" aria-label="How many">${[50, 100, 200, 400].map(n => `<option ${n === COV.n ? 'selected' : ''}>${n}</option>`).join('')}</select>
-      ${Object.keys(D.art.albums).length ? '' : '<span class="faint">No cover art yet - run scripts/fetch_art.py.</span>'}</div>
+</div>
     <div class="covers" id="covers"></div>`;
   const max = S.secs[ids[0]] || 1, wrap = $('#covers');
   const size = s => Math.round(64 + 120 * Math.sqrt(s / max));
@@ -890,15 +830,15 @@ V.covers = () => {
 V.excluded = () => {
   const rules = D.meta.rules, per = rules.map(() => new Map());
   for (let p = 0; p < P.n; p++) { const x = P.x[p]; if (!x) continue; rules.forEach((r, i) => { if (x >> r.bit & 1) { const key = P.k[p] + ':' + P.i[p]; const o = per[i].get(key) || { p, n: 0, s: 0 }; o.n++; o.s += P.s[p]; per[i].set(key, o); } }); }
-  view().innerHTML = head('Excluded plays', 'What each exclusion rule removes when "Personal only" is on. Toggle rules with the Exclusions button.', false) +
-    rules.map((r, i) => `<div class="card"><h2>${esc(r.label)} <span class="chip ${F.rules[r.id] ? 'on' : ''}" style="font-size:12px;vertical-align:2px">${F.rules[r.id] ? 'on' : 'off'}</span></h2><div class="sub">${esc(r.description)} · ${fmtInt(r.plays)} plays · ${r.hours} h</div>
+  view().innerHTML = head('Excluded plays', 'These plays are hidden while Personal only is on', false) +
+    rules.map((r, i) => `<div class="card"><h2>${esc(r.label)}</h2><div class="sub">${F.rules[r.id] ? 'On' : 'Off'} · ${esc(r.description)} · ${fmtInt(r.plays)} plays · ${r.hours} h</div>
       ${rankList([...per[i].values()].sort((a, b) => b.s - a.s).slice(0, 12).map(o => { const pl = playLabel(o.p); return { url: pl.url, title: pl.title, sub: pl.sub, value: `${fmtInt(o.n)} plays · ${fmtH(o.s)}` }; }))}</div>`).join('');
 };
 
 V.notfound = () => { view().innerHTML = '<h1>Not found</h1><p><a href="#/">Back to overview</a></p>'; };
 
 // ================================================================ router & chrome
-const NAV = [['', 'Overview'], ['wrapped', 'Wrapped'], ['calendar', 'Calendar'], ['library', 'Library'], ['trends', 'Trends'], ['onthisday', 'On this day'], ['habits', 'Habits'], ['sessions', 'Sessions'], ['discovery', 'Discovery'], ['places', 'Places'], ['devices', 'Devices'], ['podcasts', 'Podcasts & books'], ['covers', 'Covers']];
+const NAV = [['', 'Overview'], ['wrapped', 'Wrapped'], ['calendar', 'Calendar'], ['library', 'Library'], ['trends', 'Trends'], ['onthisday', 'On this day'], ['habits', 'Habits'], ['sessions', 'Sessions'], ['discovery', 'Discovery'], ['podcasts', 'Podcasts & books'], ['covers', 'Covers']];
 function route() {
   if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
   tip.hide();
@@ -917,7 +857,7 @@ function renderRules() {
 function updateRulesBtn() { const on = D.meta.rules.filter(r => F.rules[r.id]).length; $('#rulesBtn').textContent = `Exclusions (${on})`; $('#rulesBtn').disabled = false; }
 
 async function init() {
-  try { await load(); } catch (e) { view().innerHTML = `<h1>Couldn't load data</h1><p class="muted">${esc(e.message)}. Run <code>python3 scripts/build_data.py</code> and serve the <code>docs/</code> folder over HTTP.</p>`; return; }
+  try { await load(); } catch (e) { view().innerHTML = `<h1>Couldn't load data</h1><p class="muted">The data files did not load (${esc(e.message)}). Rebuild the data and reload the page.</p>`; return; }
   $('#nav').innerHTML = NAV.map(([r, l]) => `<a href="#/${r}" data-r="${r || 'overview'}">${l}</a>`).join('');
   const ys = $('#yearSel'); ys.innerHTML = `<option value="all">All years</option>` + P.years.slice().reverse().map(y => `<option value="${y}">${y}</option>`).join('');
   if (F.year !== 'all' && !P.years.includes(+F.year)) F.year = 'all';

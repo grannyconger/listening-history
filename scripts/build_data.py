@@ -221,15 +221,20 @@ meta = {
     'generated': datetime.now(timezone.utc).isoformat(timespec='seconds'),
     'home_timezone': settings['home_timezone'],
     'records_raw': len(recs) + dupes, 'duplicates_removed': dupes, 'records': len(recs),
-    'reasons': REASONS, 'devices': DEVICES,
-    'countries': [{'code': c, 'name': COUNTRIES.get(c, (c,))[0], 'iso_n': COUNTRIES.get(c, (c, None))[1]} for c in CTRY],
-    'vpn_runs': [{'country': v['country'], 'plays': v['plays'],
-                  'month': datetime.fromisoformat(v['start']).strftime('%b %Y')} for v in vpn_runs],
-    'trips': trips if settings.get('publish_countries', True) else [],
-    'country_secs': country_secs if settings.get('publish_countries', True) else {},
+    'reasons': REASONS,
     'rules': [{'id': ru['id'], 'label': ru['label'], 'description': ru.get('description', ''), 'enabled': ru['enabled'],
                'bit': ru['bit'], 'plays': rule_hits[ru['id']], 'hours': round(rule_secs[ru['id']] / 3600, 1)} for ru in rules],
 }
+if settings.get('publish_countries'):
+    meta['countries'] = [{'code': c, 'name': COUNTRIES.get(c, (c,))[0], 'iso_n': COUNTRIES.get(c, (c, None))[1]} for c in CTRY]
+    meta['vpn_runs'] = [{'country': v['country'], 'plays': v['plays'],
+                         'month': datetime.fromisoformat(v['start']).strftime('%b %Y')} for v in vpn_runs]
+    meta['trips'] = trips
+    meta['country_secs'] = country_secs
+if settings.get('publish_devices'):
+    meta['devices'] = DEVICES
+else:
+    del cols['d']
 # Never publish a per-play country: combined with timestamps it pinpoints travel dates.
 del cols['c']
 dump('meta.json', meta)
