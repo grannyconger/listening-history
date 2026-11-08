@@ -74,7 +74,7 @@ def get_json(url, headers=None, data=None, tries=5):
             if e.code in (500, 502, 503, 504):
                 time.sleep(2 ** attempt); continue
             raise
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, TimeoutError, OSError):
             time.sleep(2 ** attempt)
     return None
 
