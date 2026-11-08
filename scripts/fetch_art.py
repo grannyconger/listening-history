@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 """Fetch cover art / artist images and save their URLs to docs/data/art.json.
 
-Two modes:
-  * Spotify Web API (preferred) - put SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in a
-    .env file at the repo root (it is git-ignored). Gets album covers, artist photos,
-    podcast and audiobook art.
-  * oEmbed fallback (no credentials) - album covers for the most-listened albums,
-    podcast and audiobook art. No artist photos.
+Sources, in order:
+  1. Spotify Web API (optional) - if SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET are in the
+     git-ignored .env file. New apps get rate-limited hard, so this is skipped on a long ban.
+  2. Deezer (no key) - artist photos, matched by exact (normalised) artist name only.
+  3. Spotify oEmbed (no key) - album, podcast and audiobook art, matched exactly by Spotify ID.
 
-The script runs locally; secrets never reach the website. It is incremental: re-running
-only fetches what is missing.   Usage: python3 scripts/fetch_art.py [--limit N] [--oembed]
+Runs locally; secrets never reach the website. Incremental: re-running only fetches what's missing.
+Usage: python3 scripts/fetch_art.py [--limit N albums] [--no-api] [--no-deezer] [--no-oembed]
 """
-import json, os, sys, time, base64, urllib.request, urllib.parse, urllib.error, collections
+import json, os, sys, time, base64, re, unicodedata, threading, urllib.request, urllib.parse, urllib.error, collections
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'docs', 'data')
 ART = os.path.join(DATA, 'art.json')
 args = sys.argv[1:]
-LIMIT = int(args[args.index('--limit') + 1]) if '--limit' in args else 4000
-FORCE_OEMBED = '--oembed' in args
+LIMIT = int(args[args.index('--limit') + 1]) if '--limit' in args else 100000
+NO_API, NO_DEEZER, NO_OEMBED = '--no-api' in args or '--oembed' in args, '--no-deezer' in args, '--no-oembed' in args
 
 def load_env():
     p = os.path.join(ROOT, '.env')
@@ -187,18 +186,69 @@ def oembed_mode():
     save()
     print(f'albums: {len(art["albums"])}, shows: {len(art["shows"])}, books: {len(art["books"])}')
 
+# ---------------- Deezer artist photos ----------------
+def norm(s):
+    s = unicodedata.normalize('NFKD', s or '').encode('ascii', 'ignore').decode().casefold()
+    s = s.replace('&', 'and')
+    return re.sub(r'[^a-z0-9]', '', re.sub(r'^the ', '', s))
+
+_dz_lock = threading.Lock(); _dz_times = collections.deque()
+def dz_throttle():  # Deezer allows 50 requests / 5 s; stay well under
+    with _dz_lock:
+        now = time.time()
+        while _dz_times and now - _dz_times[0] > 5: _dz_times.popleft()
+        if len(_dz_times) >= 40: time.sleep(5 - (now - _dz_times[0]) + 0.05)
+        _dz_times.append(time.time())
+
+def deezer_artist(name):
+    target = norm(name)
+    if not target: return None
+    for attempt in range(4):
+        dz_throttle()
+        try:
+            res = get_json('https://api.deezer.com/search/artist?limit=10&q=' + urllib.parse.quote(f'artist:"{name}"'),
+                           {'User-Agent': 'listening-history-site/1.0'}, tries=3)
+        except urllib.error.HTTPError:
+            return None
+        if res and 'error' in res:  # quota exceeded -> back off
+            time.sleep(5); continue
+        for a in (res or {}).get('data', []):
+            pic = a.get('picture_big') or a.get('picture_medium')
+            # exact (normalised) name match only; skip Deezer's blank placeholder images
+            if norm(a.get('name')) == target and pic and '/artist//' not in pic:
+                return pic
+        return None
+    return None
+
+def deezer_mode():
+    artist_secs = collections.Counter()
+    for a, s in album_secs.items():
+        artist_secs[lib['albums'][a][1]] += s
+    todo = [a for a, _ in artist_secs.most_common() if str(a) not in art['artists'] and str(a) not in art.setdefault('artists_nomatch', {})]
+    print(f'Deezer: looking up {len(todo)} artists')
+    found = done = 0
+    with ThreadPoolExecutor(4) as ex:
+        for a, url in zip(todo, ex.map(lambda a: deezer_artist(lib['artists'][a]), todo)):
+            done += 1
+            if url:
+                art['artists'][str(a)] = url; found += 1
+            else:
+                art['artists_nomatch'][str(a)] = 1  # remember misses so re-runs skip them
+            if done % 500 == 0:
+                print(f'  {done}/{len(todo)} ({found} photos)'); save()
+    art['artist_source'] = 'Deezer'
+    save()
+    print(f'artists with photos: {len(art["artists"])}')
+
 cid, secret = os.environ.get('SPOTIFY_CLIENT_ID'), os.environ.get('SPOTIFY_CLIENT_SECRET')
-if cid and secret and not FORCE_OEMBED:
+if cid and secret and not NO_API:
     print('Using Spotify Web API')
     try:
         api_mode(cid, secret)
     except RateLimited as e:
         save()
-        hrs = e.args[0] / 3600
-        print(f'\nSpotify rate-limited this app for {hrs:.1f} hours. Progress so far is saved.')
-        print('Re-run this script after that; it resumes where it stopped.')
-        sys.exit(2)
-    oembed_mode()  # fills any gaps the API missed (e.g. region-locked items)
-else:
-    print('No SPOTIFY_CLIENT_ID/SECRET in .env - using oEmbed fallback')
+        print(f'Spotify Web API is rate-limiting this app for {e.args[0] / 3600:.1f} h - skipping it this run.')
+if not NO_DEEZER:
+    deezer_mode()
+if not NO_OEMBED:
     oembed_mode()
