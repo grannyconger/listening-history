@@ -76,10 +76,13 @@
     },
     {
       "id": "game_show_themes",
-      "label": "Game-show theme music",
-      "description": "Jeopardy, The Price Is Right, Wheel of Fortune, Family Feud, Millionaire, etc.",
+      "label": "Game-show and classroom game music",
+      "description": "Jeopardy, The Price Is Right, Wheel of Fortune, Family Feud, Millionaire, Kahoot! lobby music and similar.",
       "enabled": true,
-      "track_regex": "jeopardy|price is right|wheel of fortune|family feud|who wants to be a millionaire|game show"
+      "track_regex": "jeopardy|price is right|wheel of fortune|family feud|who wants to be a millionaire|game show|kahoot",
+      "artists": [
+        "Kahoot!"
+      ]
     },
     {
       "id": "chicken_dance",
