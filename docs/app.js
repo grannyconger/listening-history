@@ -55,7 +55,7 @@ function decode(pl) {
   P.t = new Float64Array(n); let acc = 0;
   for (let i = 0; i < n; i++) { acc += pl.t[i]; P.t[i] = acc; }
   P.s = Int32Array.from(pl.s); P.k = Uint8Array.from(pl.k); P.i = Int32Array.from(pl.i);
-  P.c = Uint8Array.from(pl.c); P.d = Uint8Array.from(pl.d); P.rs = Uint8Array.from(pl.rs); P.re = Uint8Array.from(pl.re);
+  P.d = Uint8Array.from(pl.d); P.rs = Uint8Array.from(pl.rs); P.re = Uint8Array.from(pl.re);
   P.f = Uint8Array.from(pl.f); P.x = Int32Array.from(pl.x);
   P.day = new Int32Array(n); P.year = new Uint16Array(n); P.mon = new Uint8Array(n); P.hour = new Uint8Array(n); P.dow = new Uint8Array(n);
   P.artist = new Int32Array(n); P.album = new Int32Array(n); P.show = new Int32Array(n);
@@ -388,7 +388,7 @@ V.wrapped = ([yr]) => {
   const bestDay = [...dayS].sort((a, b) => b[1] - a[1])[0];
   const peakHour = hourS.indexOf(Math.max(...hourS));
   const topAlbum = topN(st.albums.secs, 1)[0], topShow = topN(st.shows.secs, 1)[0], topBook = topN(st.books.secs, 1)[0];
-  const trips = D.meta.trips.filter(t => dateOf(t.start).getUTCFullYear() === Y && t.hours >= 0.5);
+  const trips = D.meta.trips.filter(t => t.year === Y && t.hours >= 0.5);
   const ta = topN(st.artists.secs, 1)[0];
   view().innerHTML = head(`${Y} Wrapped`, 'Your year in listening, any year you like.', false) + yearChips(Y, '#/wrapped/') + `
     <div class="wrapped-hero" style="margin-top:16px">
@@ -787,16 +787,19 @@ V.discovery = () => {
 
 // ---------------- Places
 V.places = async () => {
-  const act = active(), M = D.meta, byC = new Map();
+  const M = D.meta, mask = effMask(), byC = new Map();
   let vpnS = 0, unk = 0;
-  for (let p = 0; p < P.n; p++) { if (!act[p]) continue; if (P.f[p] & 16) { vpnS += P.s[p]; continue; } const c = M.countries[P.c[p]].code; if (c === 'ZZ') { unk += P.s[p]; continue; } byC.set(c, (byC.get(c) || 0) + P.s[p]); }
-  const trips = M.trips.filter(t => t.hours >= 0.05);
-  view().innerHTML = head('Places', 'Where you listened, from the country Spotify logged for each stream.', false) + `
+  Object.entries(M.country_secs || {}).forEach(([c, byMask]) => {
+    const s = Object.entries(byMask).reduce((a, [x, v]) => a + ((+x & mask) ? 0 : v), 0);
+    if (c === 'VPN') vpnS += s; else if (c === 'ZZ') unk += s; else if (s) byC.set(c, s);
+  });
+  const trips = M.trips;
+  view().innerHTML = head('Places', 'Where you listened, from the country Spotify logged for each stream. Trip dates are shown by month only.', false) + `
     <div class="card"><h2>Countries</h2><div class="sub">Blue = trips abroad; gray-blue = home. VPN connections are counted as home.</div><div class="chart map" id="map"></div></div>
-    <div class="card"><h2>Trips</h2><div class="table-wrap"><table class="tbl"><thead><tr><th>Country</th><th>Dates</th><th class="r">Days</th><th class="r">Listening</th><th>Soundtrack</th></tr></thead><tbody>
-      ${trips.map(t => { const d0 = Math.floor(t.start / 86400), d1 = Math.floor(t.end / 86400); return `<tr><td>${esc(t.name)}</td><td><a href="#/calendar/${d0}">${fmtDate(t.start)}</a>${d1 > d0 ? ` – ${fmtDate(t.end)}` : ''}</td><td class="r">${d1 - d0 + 1}</td><td class="r">${fmtH(t.hours * 3600)}</td><td class="name sub">${esc(t.top.join(', '))}</td></tr>`; }).join('')}</tbody></table></div></div>
+    <div class="card"><h2>Trips</h2><div class="table-wrap"><table class="tbl"><thead><tr><th>Country</th><th>When</th><th>Length</th><th class="r">Listening</th><th>Soundtrack</th></tr></thead><tbody>
+      ${trips.map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.period)}</td><td>${esc(t.length)}</td><td class="r">${fmtH(t.hours * 3600)}</td><td class="name sub">${esc(t.top.join(', '))}</td></tr>`).join('')}</tbody></table></div></div>
     <div class="grid g2"><div class="card"><h2>VPN connections</h2><div class="sub">Logged abroad but played from home - counted as home listening (${fmtH(vpnS)}).</div>
-      <table class="tbl"><thead><tr><th>Date</th><th>Logged as</th><th class="r">Plays</th></tr></thead><tbody>${M.vpn_runs.map(v => `<tr><td>${esc(v.date)}</td><td>${esc(M.countries.find(c => c.code === v.country)?.name || v.country)}</td><td class="r">${v.plays}</td></tr>`).join('')}</tbody></table></div>
+      <table class="tbl"><thead><tr><th>Month</th><th>Logged as</th><th class="r">Plays</th></tr></thead><tbody>${M.vpn_runs.map(v => `<tr><td>${esc(v.month)}</td><td>${esc(M.countries.find(c => c.code === v.country)?.name || v.country)}</td><td class="r">${v.plays}</td></tr>`).join('')}</tbody></table></div>
       <div class="card"><h2>Unknown country</h2><div class="sub">Spotify logged "ZZ" (no country) for ${fmtH(unk)} of listening, mostly short bursts in 2017–2020 - typical of in-flight Wi-Fi or a network Spotify couldn't place.</div></div></div>`;
   let world;
   try { world = await getJSON('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json'); } catch (e) { $('#map').innerHTML = '<p class="muted">Map unavailable offline.</p>'; return; }

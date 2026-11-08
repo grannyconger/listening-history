@@ -161,7 +161,7 @@ for r in recs:
     else:
         kind, it = 3, -1
     flags = (1 if r.get('shuffle') else 0) | (2 if r.get('skipped') else 0) | (4 if r.get('offline') else 0) \
-        | (8 if r.get('incognito_mode') else 0) | (16 if vpn else 0) | (32 if r['_video'] else 0)
+        | (8 if r.get('incognito_mode') else 0) | (32 if r['_video'] else 0)  # bit 16 (VPN) deliberately not published
     x = rule_mask(r, local)
     for ru in rules:
         if x >> ru['bit'] & 1:
@@ -187,11 +187,27 @@ for c, rs in by_c.items():
         top = collections.Counter()
         for g in group:
             if g.get('master_metadata_album_artist_name'): top[g['master_metadata_album_artist_name']] += g['ms_played']
-        trips.append({'country': c, 'name': COUNTRIES.get(c, (c,))[0], 'start': group[0]['_wall'], 'end': group[-1]['_wall'],
-                      'hours': round(sum(g['ms_played'] for g in group) / 3.6e6, 2), 'plays': len(group),
+        s0 = datetime.fromtimestamp(group[0]['_wall'], timezone.utc); s1 = datetime.fromtimestamp(group[-1]['_wall'], timezone.utc)
+        ndays = (s1.date() - s0.date()).days + 1
+        m0, m1 = s0.strftime('%b %Y'), s1.strftime('%b %Y')
+        period = m0 if m0 == m1 else (f"{s0.strftime('%b')} – {m1}" if s0.year == s1.year else f'{m0} – {m1}')
+        length = 'a day' if ndays <= 1 else 'a few days' if ndays <= 4 else 'about a week' if ndays <= 10 else 'a couple of weeks' if ndays <= 21 else 'about a month'
+        trips.append({'country': c, 'name': COUNTRIES.get(c, (c,))[0], '_sort': group[0]['_wall'],
+                      'period': period, 'year': s0.year, 'length': length,
+                      'hours': round(sum(g['ms_played'] for g in group) / 3.6e6, 1),
                       'top': [a for a, _ in top.most_common(3)]})
         if r is not None: group = [r]
-trips.sort(key=lambda t: t['start'])
+trips = [t for t in trips if t['hours'] >= 0.1]  # drop stray single plays
+trips.sort(key=lambda t: t['_sort'])
+for t in trips: del t['_sort']
+
+# Country totals, keyed by exclusion mask so the site can still honour the rule toggles
+# without a per-play country column (which would reveal exact travel dates).
+country_secs = collections.defaultdict(lambda: collections.defaultdict(float))
+for r, x in zip(recs, cols['x']):
+    key = 'VPN' if r.get('_vpn') else r['_c']
+    country_secs[key][str(x)] += (r['ms_played'] or 0) / 1000
+country_secs = {c: {m: round(s) for m, s in d.items()} for c, d in country_secs.items()}
 
 # ---------- write ----------
 os.makedirs(OUT, exist_ok=True)
@@ -207,13 +223,15 @@ meta = {
     'records_raw': len(recs) + dupes, 'duplicates_removed': dupes, 'records': len(recs),
     'reasons': REASONS, 'devices': DEVICES,
     'countries': [{'code': c, 'name': COUNTRIES.get(c, (c,))[0], 'iso_n': COUNTRIES.get(c, (c, None))[1]} for c in CTRY],
-    'vpn_runs': [{'country': v['country'], 'plays': v['plays'], 'date': v['start'][:10]} for v in vpn_runs],
+    'vpn_runs': [{'country': v['country'], 'plays': v['plays'],
+                  'month': datetime.fromisoformat(v['start']).strftime('%b %Y')} for v in vpn_runs],
     'trips': trips if settings.get('publish_countries', True) else [],
+    'country_secs': country_secs if settings.get('publish_countries', True) else {},
     'rules': [{'id': ru['id'], 'label': ru['label'], 'description': ru.get('description', ''), 'enabled': ru['enabled'],
                'bit': ru['bit'], 'plays': rule_hits[ru['id']], 'hours': round(rule_secs[ru['id']] / 3600, 1)} for ru in rules],
 }
-if not settings.get('publish_countries', True):
-    cols['c'] = [0] * len(cols['c'])
+# Never publish a per-play country: combined with timestamps it pinpoints travel dates.
+del cols['c']
 dump('meta.json', meta)
 dump('library.json', L)
 dump('plays.json', cols)

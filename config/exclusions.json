@@ -6,8 +6,20 @@
       "label": "INST during school hours",
       "description": "INST played Mon–Fri 7:30am–3:00pm (classroom use).",
       "enabled": true,
-      "artists": ["INST"],
-      "when": {"days": [0, 1, 2, 3, 4], "start": "07:30", "end": "15:00"}
+      "artists": [
+        "INST"
+      ],
+      "when": {
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "start": "07:30",
+        "end": "15:00"
+      }
     },
     {
       "id": "game_show_themes",
@@ -25,31 +37,50 @@
     },
     {
       "id": "focus_lofi_school",
-      "label": "Suggested: lo-fi/focus music during school hours",
+      "label": "Lo-fi/focus music during school hours",
       "description": "Artists played 84–94% of the time Mon–Fri 7:30am–3:00pm (Chilled Pig, Lowfie, Edward Ong, Minnz Piano, Lofi Fruits, Wildlife Bill, Todd Baker, Second Breakfast).",
-      "enabled": false,
-      "artists": ["Chilled Pig", "Lowfie", "Edward Ong", "Minnz Piano", "Lofi Fruits Music", "Wildlife Bill", "Todd Baker", "Second Breakfast"],
-      "when": {"days": [0, 1, 2, 3, 4], "start": "07:30", "end": "15:00"}
+      "enabled": true,
+      "artists": [
+        "Chilled Pig",
+        "Lowfie",
+        "Edward Ong",
+        "Minnz Piano",
+        "Lofi Fruits Music",
+        "Wildlife Bill",
+        "Todd Baker",
+        "Second Breakfast"
+      ],
+      "when": {
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "start": "07:30",
+        "end": "15:00"
+      }
     },
     {
       "id": "kids_party",
-      "label": "Suggested: kids, party & movement songs",
+      "label": "Kids, party & movement songs",
       "description": "Baby Shark, Cupid Shuffle, Cha Cha Slide, Macarena, Hokey Pokey, VeggieTales, cartoon theme songs.",
-      "enabled": false,
+      "enabled": true,
       "track_regex": "baby shark|cupid shuffle|cha cha slide|macarena|hokey|hairbrush song|magic school bus|my little pony|phineas and ferb|hot wheels"
     },
     {
       "id": "video_game_themes",
-      "label": "Suggested: video-game themes",
+      "label": "Video-game themes",
       "description": "Mario, Mario Kart and similar game music (mostly played during school hours).",
-      "enabled": false,
+      "enabled": true,
       "track_regex": "super mario|mario kart|starman theme|coconut mall|rainbow road"
     },
     {
       "id": "sleep_sounds",
-      "label": "Suggested: sleep sounds & white noise",
+      "label": "Sleep sounds & white noise",
       "description": "White/brown noise and sleep-sound tracks and shows (≈126 hours).",
-      "enabled": false,
+      "enabled": true,
       "track_regex": "white noise|brown noise|pink noise|sleep sound",
       "show_regex": "white noise|sleep|comforting sounds"
     }
