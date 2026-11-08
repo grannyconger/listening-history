@@ -115,11 +115,50 @@ for bit, rc in enumerate(rules_cfg):
                   '_t1': int(w['end'][:2]) * 60 + int(w['end'][3:]) if w else None})
 assert len(rules) <= 30
 
+def tz_for(r):
+    c = r['conn_country'] or 'ZZ'
+    return HOME_TZ if (c in ('US', 'ZZ') or r.get('_vpn')) else CTZ.get(c, HOME_TZ)
+
+# ---------- "playing while asleep" detection (rules with "type": "overnight") ----------
+# A "touch" is anything the listener did: picking a song, play button, skip, back, Connect remote,
+# opening the app. A play is "asleep" when it started on its own during a stretch where the
+# listener stopped touching Spotify late at night and didn't touch it again until the morning.
+USER_STARTS = {'clickrow', 'fwdbtn', 'backbtn', 'playbtn', 'remote', 'appload'}
+USER_ENDS = {'fwdbtn', 'backbtn'}
+def hm(s): return int(s[:2]) * 60 + int(s[3:])
+touches = sorted([r['_start'] for r in recs if r.get('reason_start') in USER_STARTS] +
+                 [datetime.strptime(r['ts'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+                  for r in recs if r.get('reason_end') in USER_ENDS])
+for ru in rules:
+    if ru.get('type') != 'overnight':
+        continue
+    p = {'grace_minutes': 30, 'counts_from': '23:00', 'last_touch_before': '04:00', 'next_touch_after': '05:00',
+         'min_untouched_hours': 3, 'stops_at': '09:00', **ru.get('params', {})}
+    grace, min_gap = timedelta(minutes=p['grace_minutes']), timedelta(hours=p['min_untouched_hours'])
+    for r in recs:
+        if r.get('reason_start') in USER_STARTS:
+            continue  # the listener started this one, so they were awake
+        s = r['_start']; k = bisect.bisect_right(touches, s)
+        if k == 0 or k >= len(touches):
+            continue
+        last, nxt = touches[k - 1], touches[k]
+        tz = tz_for(r); ls = s.astimezone(tz)
+        night = (ls - timedelta(hours=12)).date()  # evening this play's night started on
+        at = lambda hhmm, day_off: datetime(night.year, night.month, night.day, tzinfo=tz) + timedelta(days=day_off, minutes=hm(hhmm))
+        start_of_night = at(p['counts_from'], 0) if hm(p['counts_from']) >= 12 * 60 else at(p['counts_from'], 1)
+        if (last <= at(p['last_touch_before'], 1) and nxt >= at(p['next_touch_after'], 1) and nxt - last >= min_gap
+                and s >= start_of_night and s >= last + grace and s < nxt and s < at(p['stops_at'], 1)):
+            r.setdefault('_overnight', set()).add(ru['id'])
+
 def rule_mask(r, local):
     mask = 0
     tn, ar, al = r.get('master_metadata_track_name') or '', r.get('master_metadata_album_artist_name') or '', r.get('master_metadata_album_album_name') or ''
     sh = r.get('episode_show_name') or ''
     for ru in rules:
+        if ru.get('type') == 'overnight':
+            if ru['id'] in r.get('_overnight', ()):
+                mask |= 1 << ru['bit']
+            continue
         hit = (ar in ru['_ar']) or (ru['_tr'] and ru['_tr'].search(tn)) or (ru['_al'] and ru['_al'].search(al)) \
             or (ru['_sh'] and ru['_sh'].search(sh)) or (ru['_tr'] and r.get('episode_name') and ru['_tr'].search(r['episode_name']))
         if hit and ru['_days'] is not None:
@@ -141,8 +180,7 @@ prev_t = 0
 for r in recs:
     c = r['conn_country'] or 'ZZ'
     vpn = r.get('_vpn', False)
-    tz = HOME_TZ if (c in ('US', 'ZZ') or vpn) else CTZ.get(c, HOME_TZ)
-    local = r['_start'].astimezone(tz)
+    local = r['_start'].astimezone(tz_for(r))
     wall = int((local.replace(tzinfo=timezone.utc) - EPOCH).total_seconds())
     if r.get('audiobook_uri'):
         kind = 2; it = idx(books, L['books'], r['audiobook_uri'], [r.get('audiobook_title') or '?', r['audiobook_uri'].split(':')[-1]])

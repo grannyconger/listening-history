@@ -1,6 +1,21 @@
 {
-  "_help": "Rules that mark plays as NOT personal listening. 'enabled' sets the site default (each rule can also be toggled in the site's Exclusions panel). Match on 'artists' (exact names), 'track_regex', 'album_regex', 'show_regex' (case-insensitive Python regex). Optional 'when' limits the rule to local weekdays (0=Mon..6=Sun) and a start/end time window. Re-run scripts/build_data.py after editing.",
+  "_help": "Rules that mark plays as NOT personal listening. 'enabled' sets the site default (each rule can also be toggled in the site's Exclusions panel). Match on 'artists' (exact names), 'track_regex', 'album_regex', 'show_regex' (case-insensitive Python regex). Optional 'when' limits the rule to local weekdays (0=Mon..6=Sun) and a start/end time window. Re-run scripts/build_data.py after editing. A rule with \"type\": \"overnight\" ignores names and instead marks songs that played on their own after you stopped touching Spotify late at night, until your first touch the next morning (see params).",
   "rules": [
+    {
+      "id": "asleep_overnight",
+      "label": "Playing while asleep",
+      "description": "Songs that kept playing on their own after your last touch at night (no taps, skips or picks until the morning). Counts from 30 minutes after your last touch, between 11pm and 9am.",
+      "enabled": true,
+      "type": "overnight",
+      "params": {
+        "grace_minutes": 30,
+        "counts_from": "23:00",
+        "last_touch_before": "04:00",
+        "next_touch_after": "05:00",
+        "min_untouched_hours": 3,
+        "stops_at": "09:00"
+      }
+    },
     {
       "id": "inst_classroom",
       "label": "INST during school hours",
