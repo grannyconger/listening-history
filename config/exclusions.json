@@ -2,6 +2,26 @@
   "_help": "Rules that mark plays as NOT personal listening. 'enabled' sets the site default (each rule can also be toggled in the site's Exclusions panel). Match on 'artists' (exact names), 'track_regex', 'album_regex', 'show_regex' (case-insensitive Python regex). Optional 'when' limits the rule to local weekdays (0=Mon..6=Sun) and a start/end time window. Re-run scripts/build_data.py after editing. A rule with \"type\": \"overnight\" ignores names and instead marks songs that played on their own after you stopped touching Spotify late at night, until your first touch the next morning (see params).",
   "rules": [
     {
+      "id": "christian_artists",
+      "label": "Christian artists",
+      "short": "Christian",
+      "group": "genre",
+      "type": "artist_tag",
+      "tag": "christian",
+      "description": "Worship, gospel and Christian artists.",
+      "enabled": true
+    },
+    {
+      "id": "instrumental_artists",
+      "label": "Instrumental artists",
+      "short": "instrumental",
+      "group": "genre",
+      "type": "artist_tag",
+      "tag": "instrumental",
+      "description": "Artists whose music is mostly without singing: piano covers, classical, film scores, lo-fi and similar.",
+      "enabled": true
+    },
+    {
       "id": "asleep_overnight",
       "label": "Playing while asleep",
       "description": "Songs that kept playing on their own after your last touch at night (no taps, skips or picks until the morning). Counts from 30 minutes after your last touch, between 11pm and 9am.",
@@ -14,6 +34,24 @@
         "next_touch_after": "05:00",
         "min_untouched_hours": 3,
         "stops_at": "09:00"
+      }
+    },
+    {
+      "id": "shoulders_repeat",
+      "label": "Shoulders on repeat at night",
+      "description": "When Shoulders played more than 10 times in a row starting in the evening (6pm to 4am), plays after the 10th.",
+      "enabled": true,
+      "type": "repeat_run",
+      "songs": [
+        {
+          "track": "Shoulders",
+          "artist": "for KING & COUNTRY"
+        }
+      ],
+      "params": {
+        "max_in_a_row": 10,
+        "starts_after": "18:00",
+        "starts_before": "04:00"
       }
     },
     {

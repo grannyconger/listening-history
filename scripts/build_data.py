@@ -102,8 +102,12 @@ def device(p):
     return 'Other'
 
 # ---------- exclusion rules ----------
+TAGS_PATH = os.path.join(ROOT, 'config', 'artist_tags.json')
+artist_tags = json.load(open(TAGS_PATH)) if os.path.exists(TAGS_PATH) else {}
 rules = []
 for bit, rc in enumerate(rules_cfg):
+    if rc.get('type') == 'artist_tag':  # artists listed under this tag in config/artist_tags.json
+        rc = {**rc, 'artists': [a for a in artist_tags.get(rc['tag'], []) if not a.startswith('_')]}
     w = rc.get('when')
     rules.append({**rc, 'bit': bit,
                   '_tr': re.compile(rc['track_regex'], re.I) if rc.get('track_regex') else None,
@@ -150,12 +154,35 @@ for ru in rules:
                 and s >= start_of_night and s >= last + grace and s < nxt and s < at(p['stops_at'], 1)):
             r.setdefault('_overnight', set()).add(ru['id'])
 
+# ---------- long evening repeat runs (rules with "type": "repeat_run") ----------
+# A run is the same song played back-to-back with nothing else between. When a run of a listed
+# song starts in the evening window and goes past max_in_a_row, every play after that is marked.
+def song_key(r):
+    return ((r.get('master_metadata_track_name') or '').casefold().strip(), r.get('master_metadata_album_artist_name') or '')
+for ru in rules:
+    if ru.get('type') != 'repeat_run':
+        continue
+    p = {'max_in_a_row': 10, 'starts_after': '18:00', 'starts_before': '04:00', **ru.get('params', {})}
+    wanted = {(s['track'].casefold().strip(), s['artist']) for s in ru.get('songs', [])}
+    i = 0
+    while i < len(recs):
+        k = song_key(recs[i]); j = i
+        while j + 1 < len(recs) and song_key(recs[j + 1]) == k:
+            j += 1
+        if (not wanted or k in wanted) and recs[i].get('spotify_track_uri') and j - i + 1 > p['max_in_a_row']:
+            ls = recs[i]['_start'].astimezone(tz_for(recs[i])); mins = ls.hour * 60 + ls.minute
+            a, b = hm(p['starts_after']), hm(p['starts_before'])
+            if (mins >= a or mins < b) if a > b else (a <= mins < b):
+                for r in recs[i + p['max_in_a_row']:j + 1]:
+                    r.setdefault('_overnight', set()).add(ru['id'])
+        i = j + 1
+
 def rule_mask(r, local):
     mask = 0
     tn, ar, al = r.get('master_metadata_track_name') or '', r.get('master_metadata_album_artist_name') or '', r.get('master_metadata_album_album_name') or ''
     sh = r.get('episode_show_name') or ''
     for ru in rules:
-        if ru.get('type') == 'overnight':
+        if ru.get('type') in ('overnight', 'repeat_run'):
             if ru['id'] in r.get('_overnight', ()):
                 mask |= 1 << ru['bit']
             continue
@@ -261,6 +288,7 @@ meta = {
     'records_raw': len(recs) + dupes, 'duplicates_removed': dupes, 'records': len(recs),
     'reasons': REASONS,
     'rules': [{'id': ru['id'], 'label': ru['label'], 'description': ru.get('description', ''), 'enabled': ru['enabled'],
+               'group': ru.get('group', 'personal'), 'short': ru.get('short', ''),
                'bit': ru['bit'], 'plays': rule_hits[ru['id']], 'hours': round(rule_secs[ru['id']] / 3600, 1)} for ru in rules],
 }
 if settings.get('publish_countries'):
