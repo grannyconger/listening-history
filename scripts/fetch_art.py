@@ -57,6 +57,9 @@ def save():
     art['updated'] = time.strftime('%Y-%m-%d')
     json.dump(art, open(ART, 'w'), separators=(',', ':'))
 
+class RateLimited(Exception):
+    """Spotify asked us to back off for longer than is reasonable to sleep."""
+
 def get_json(url, headers=None, data=None, tries=5):
     for attempt in range(tries):
         req = urllib.request.Request(url, data=data, headers=headers or {})
@@ -66,6 +69,8 @@ def get_json(url, headers=None, data=None, tries=5):
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 wait = int(e.headers.get('Retry-After', '5')) + 1
+                if wait > 300:
+                    raise RateLimited(wait)
                 print(f'  rate limited, waiting {wait}s'); time.sleep(wait); continue
             if e.code in (500, 502, 503, 504):
                 time.sleep(2 ** attempt); continue
@@ -185,10 +190,15 @@ def oembed_mode():
 cid, secret = os.environ.get('SPOTIFY_CLIENT_ID'), os.environ.get('SPOTIFY_CLIENT_SECRET')
 if cid and secret and not FORCE_OEMBED:
     print('Using Spotify Web API')
-    if not api_mode(cid, secret):
-        oembed_mode()
-    else:
-        oembed_mode()  # fills any gaps the API missed (e.g. region-locked items)
+    try:
+        api_mode(cid, secret)
+    except RateLimited as e:
+        save()
+        hrs = e.args[0] / 3600
+        print(f'\nSpotify rate-limited this app for {hrs:.1f} hours. Progress so far is saved.')
+        print('Re-run this script after that; it resumes where it stopped.')
+        sys.exit(2)
+    oembed_mode()  # fills any gaps the API missed (e.g. region-locked items)
 else:
     print('No SPOTIFY_CLIENT_ID/SECRET in .env - using oEmbed fallback')
     oembed_mode()
