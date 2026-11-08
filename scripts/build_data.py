@@ -188,12 +188,15 @@ def is_speaker(platform):
 for ru in rules:
     if ru.get('type') != 'wake_alarm':
         continue
-    p = {'after': '04:00', 'reasons': ['remote', 'playbtn'], **ru.get('params', {})}
+    # second_song_minutes: the routine's second song. The play right after the alarm is also marked when it
+    # played on a smart speaker, started by the routine (not a tap) within this many minutes of the alarm ending.
+    p = {'after': '04:00', 'reasons': ['remote', 'playbtn'], 'second_song_minutes': 2,
+         'second_song_reasons': ['playbtn', 'remote', 'trackdone'], **ru.get('params', {})}
     alarms = collections.defaultdict(list)
     for a in ru.get('alarms', []):
         alarms[(a['track'].casefold().strip(), a['artist'])].append((a['from'], a['to']))
     seen_days = set()
-    for r in recs:
+    for i, r in enumerate(recs):
         ls = r['_start'].astimezone(tz_for(r))
         if ls.hour * 60 + ls.minute < hm(p['after']) or ls.date() in seen_days:
             continue
@@ -202,6 +205,18 @@ for ru in rules:
         if (r.get('reason_start') in p['reasons'] and is_speaker(r.get('platform'))
                 and any(f <= d <= t for f, t in alarms.get(song_key(r), ()))):
             r.setdefault('_overnight', set()).add(ru['id'])
+            # A replay of the alarm song (it went off again) is marked too, and the second song after it still counts as the routine's.
+            j, prev = i + 1, r
+            while p['second_song_minutes'] and j < len(recs) and j <= i + 3:
+                n = recs[j]
+                prev_end = prev['_start'] + timedelta(milliseconds=prev['ms_played'] or 0)
+                if not (n.get('reason_start') in p['second_song_reasons'] and is_speaker(n.get('platform'))
+                        and n['_start'] - prev_end <= timedelta(minutes=p['second_song_minutes'])):
+                    break
+                n.setdefault('_overnight', set()).add(ru['id'])
+                if song_key(n) != song_key(r):
+                    break  # that was the second song
+                j, prev = j + 1, n
 
 def rule_mask(r, local):
     mask = 0

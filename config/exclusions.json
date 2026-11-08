@@ -39,7 +39,7 @@
     {
       "id": "wake_alarm",
       "label": "Wake-up alarms",
-      "description": "Songs an Alexa or Google Home routine played as a morning alarm. Only the first play after 4am on those mornings is left out. Other plays of the same songs still count.",
+      "description": "Songs an Alexa or Google Home routine played as a morning alarm: the alarm song (first play after 4am) and the routine's second song right after it. Other plays of the same songs still count.",
       "enabled": true,
       "type": "wake_alarm",
       "params": {
@@ -47,7 +47,8 @@
         "reasons": [
           "remote",
           "playbtn"
-        ]
+        ],
+        "second_song_minutes": 30
       },
       "alarms": [
         {
