@@ -1,5 +1,5 @@
 {
-  "_help": "Rules that mark plays as NOT personal listening. 'enabled' sets the site default (each rule can also be toggled in the site's Exclusions panel). Match on 'artists' (exact names), 'track_regex', 'album_regex', 'show_regex' (case-insensitive Python regex). Optional 'when' limits the rule to local weekdays (0=Mon..6=Sun) and a start/end time window. Re-run scripts/build_data.py after editing. A rule with \"type\": \"overnight\" ignores names and instead marks songs that played on their own after you stopped touching Spotify late at night, until your first touch the next morning (see params).",
+  "_help": "Rules that mark plays as NOT personal listening. 'enabled' sets the site default (each rule can also be toggled in the site's Exclusions panel). Match on 'artists' (exact names), 'track_regex', 'album_regex', 'show_regex' (case-insensitive Python regex). Optional 'when' limits the rule to local weekdays (0=Mon..6=Sun) and a start/end time window. Re-run scripts/build_data.py after editing. A rule with \"type\": \"overnight\" ignores names and instead marks songs that played on their own after you stopped touching Spotify late at night, until your first touch the next morning (see params). A rule with \"type\": \"wake_alarm\" marks only each day's first play after params.after when it matches a listed song within its from/to dates and was started remotely on a smart speaker (find candidates with scripts/find_alarms.py).",
   "rules": [
     {
       "id": "christian_artists",
@@ -35,6 +35,855 @@
         "min_untouched_hours": 3,
         "stops_at": "09:00"
       }
+    },
+    {
+      "id": "wake_alarm",
+      "label": "Wake-up alarms",
+      "description": "Songs an Alexa or Google Home routine played as a morning alarm. Only the first play after 4am on those mornings is left out. Other plays of the same songs still count.",
+      "enabled": true,
+      "type": "wake_alarm",
+      "params": {
+        "after": "04:00",
+        "reasons": [
+          "remote",
+          "playbtn"
+        ]
+      },
+      "alarms": [
+        {
+          "track": "Stay High",
+          "artist": "Juice WRLD",
+          "from": "2020-09-02",
+          "to": "2020-09-04",
+          "time": "07:25"
+        },
+        {
+          "track": "Super Bass",
+          "artist": "Nicki Minaj",
+          "from": "2022-06-22",
+          "to": "2022-06-26",
+          "time": "05:10"
+        },
+        {
+          "track": "Sharks",
+          "artist": "Imagine Dragons",
+          "from": "2022-07-03",
+          "to": "2022-07-05",
+          "time": "07:04"
+        },
+        {
+          "track": "Perm",
+          "artist": "Bruno Mars",
+          "from": "2022-07-12",
+          "to": "2022-07-14",
+          "time": "07:12"
+        },
+        {
+          "track": "I'm Ready",
+          "artist": "AJR",
+          "from": "2022-09-16",
+          "to": "2022-09-18",
+          "time": "08:38"
+        },
+        {
+          "track": "Red Desert",
+          "artist": "5 Seconds of Summer",
+          "from": "2022-09-19",
+          "to": "2022-12-01",
+          "time": "06:20"
+        },
+        {
+          "track": "Neighborhood",
+          "artist": "American Authors",
+          "from": "2022-09-22",
+          "to": "2022-11-25",
+          "time": "06:30"
+        },
+        {
+          "track": "Dreamland",
+          "artist": "Amos Lee",
+          "from": "2022-10-20",
+          "to": "2022-10-22",
+          "time": "05:51"
+        },
+        {
+          "track": "Hypotheticals",
+          "artist": "Lake Street Dive",
+          "from": "2022-11-14",
+          "to": "2022-11-17",
+          "time": "06:02"
+        },
+        {
+          "track": "Juggernaut (Sessions)",
+          "artist": "John Mark McMillan",
+          "from": "2022-11-26",
+          "to": "2022-11-30",
+          "time": "05:45"
+        },
+        {
+          "track": "Deserve You",
+          "artist": "Justin Bieber",
+          "from": "2022-12-02",
+          "to": "2022-12-04",
+          "time": "08:01"
+        },
+        {
+          "track": "Never Say Never",
+          "artist": "Justin Bieber",
+          "from": "2022-12-05",
+          "to": "2022-12-10",
+          "time": "10:16"
+        },
+        {
+          "track": "My Testimony (Morning & Evening)",
+          "artist": "Elevation Worship",
+          "from": "2022-12-11",
+          "to": "2022-12-18",
+          "time": "07:01"
+        },
+        {
+          "track": "RATTLE! (Morning & Evening)",
+          "artist": "Elevation Worship",
+          "from": "2022-12-19",
+          "to": "2022-12-22",
+          "time": "07:31"
+        },
+        {
+          "track": "We Are Young (feat. Janelle Monáe)",
+          "artist": "fun.",
+          "from": "2022-12-23",
+          "to": "2023-01-20",
+          "time": "06:44"
+        },
+        {
+          "track": "Move On",
+          "artist": "Mike Posner",
+          "from": "2023-01-03",
+          "to": "2023-01-05",
+          "time": "06:22"
+        },
+        {
+          "track": "Circle of Life",
+          "artist": "Carmen Twillie",
+          "from": "2023-01-10",
+          "to": "2023-01-12",
+          "time": "07:36"
+        },
+        {
+          "track": "New Creation",
+          "artist": "Mac Powell",
+          "from": "2023-01-13",
+          "to": "2023-01-17",
+          "time": "08:11"
+        },
+        {
+          "track": "Panda",
+          "artist": "Desiigner",
+          "from": "2023-02-01",
+          "to": "2023-02-03",
+          "time": "05:33"
+        },
+        {
+          "track": "Red Desert",
+          "artist": "5 Seconds of Summer",
+          "from": "2023-02-04",
+          "to": "2023-03-16",
+          "time": "05:29"
+        },
+        {
+          "track": "Dreamland",
+          "artist": "Amos Lee",
+          "from": "2023-02-08",
+          "to": "2023-03-08",
+          "time": "05:30"
+        },
+        {
+          "track": "Guns for Hands",
+          "artist": "Twenty One Pilots",
+          "from": "2023-02-15",
+          "to": "2023-02-21",
+          "time": "06:26"
+        },
+        {
+          "track": "Ghost",
+          "artist": "Justin Bieber",
+          "from": "2023-02-23",
+          "to": "2023-04-17",
+          "time": "05:59"
+        },
+        {
+          "track": "Castle on the Hill",
+          "artist": "Ed Sheeran",
+          "from": "2023-04-11",
+          "to": "2023-04-13",
+          "time": "05:51"
+        },
+        {
+          "track": "Spectrum (Say My Name) - Calvin Harris Remix",
+          "artist": "Florence + The Machine",
+          "from": "2023-04-20",
+          "to": "2023-04-23",
+          "time": "06:44"
+        },
+        {
+          "track": "Raised to Life",
+          "artist": "Elevation Worship",
+          "from": "2023-05-07",
+          "to": "2023-05-09",
+          "time": "08:30"
+        },
+        {
+          "track": "Red Desert",
+          "artist": "5 Seconds of Summer",
+          "from": "2023-05-10",
+          "to": "2023-08-04",
+          "time": "07:45"
+        },
+        {
+          "track": "Dreamland",
+          "artist": "Amos Lee",
+          "from": "2023-05-15",
+          "to": "2023-06-30",
+          "time": "06:44"
+        },
+        {
+          "track": "Confident",
+          "artist": "Demi Lovato",
+          "from": "2023-05-25",
+          "to": "2023-05-29",
+          "time": "05:51"
+        },
+        {
+          "track": "Walls (with Jon Bellion)",
+          "artist": "Jonas Brothers",
+          "from": "2023-05-30",
+          "to": "2023-06-13",
+          "time": "07:30"
+        },
+        {
+          "track": "Nothin' But A Good Time - Remastered 2006",
+          "artist": "Poison",
+          "from": "2023-06-24",
+          "to": "2023-08-30",
+          "time": "06:43"
+        },
+        {
+          "track": "Rise Up",
+          "artist": "WALK THE MOON",
+          "from": "2023-07-08",
+          "to": "2023-07-14",
+          "time": "06:15"
+        },
+        {
+          "track": "Seven Nation Army",
+          "artist": "The White Stripes",
+          "from": "2023-07-20",
+          "to": "2023-09-03",
+          "time": "07:48"
+        },
+        {
+          "track": "Golden",
+          "artist": "Harry Styles",
+          "from": "2023-07-25",
+          "to": "2023-07-31",
+          "time": "09:07"
+        },
+        {
+          "track": "Ghost",
+          "artist": "Justin Bieber",
+          "from": "2023-08-07",
+          "to": "2023-08-09",
+          "time": "06:01"
+        },
+        {
+          "track": "Another One Bites The Dust - Remastered 2011",
+          "artist": "Queen",
+          "from": "2023-08-10",
+          "to": "2023-10-23",
+          "time": "06:01"
+        },
+        {
+          "track": "Dancing In The Dark",
+          "artist": "Imagine Dragons",
+          "from": "2023-08-19",
+          "to": "2023-09-15",
+          "time": "06:42"
+        },
+        {
+          "track": "I'm Ready",
+          "artist": "AJR",
+          "from": "2023-09-08",
+          "to": "2023-10-16",
+          "time": "07:44"
+        },
+        {
+          "track": "Here Comes The Sun - Remastered 2009",
+          "artist": "The Beatles",
+          "from": "2023-09-17",
+          "to": "2023-10-13",
+          "time": "08:00"
+        },
+        {
+          "track": "Summer In The Hamptons",
+          "artist": "Jonas Brothers",
+          "from": "2023-09-20",
+          "to": "2023-09-24",
+          "time": "06:30"
+        },
+        {
+          "track": "Joy",
+          "artist": "Andy Grammer",
+          "from": "2023-10-01",
+          "to": "2023-10-04",
+          "time": "05:30"
+        },
+        {
+          "track": "Enemies",
+          "artist": "The Score",
+          "from": "2023-10-19",
+          "to": "2023-10-22",
+          "time": "05:39"
+        },
+        {
+          "track": "MONACO",
+          "artist": "Bad Bunny",
+          "from": "2023-11-10",
+          "to": "2023-11-15",
+          "time": "05:07"
+        },
+        {
+          "track": "Ghost",
+          "artist": "Justin Bieber",
+          "from": "2023-11-16",
+          "to": "2023-12-07",
+          "time": "05:01"
+        },
+        {
+          "track": "Any Way You Want It",
+          "artist": "Journey",
+          "from": "2023-11-18",
+          "to": "2023-11-21",
+          "time": "05:31"
+        },
+        {
+          "track": "Red Desert",
+          "artist": "5 Seconds of Summer",
+          "from": "2023-11-28",
+          "to": "2023-11-30",
+          "time": "05:09"
+        },
+        {
+          "track": "Sing",
+          "artist": "Pentatonix",
+          "from": "2023-12-08",
+          "to": "2023-12-13",
+          "time": "05:30"
+        },
+        {
+          "track": "golden hour",
+          "artist": "JVKE",
+          "from": "2023-12-14",
+          "to": "2023-12-16",
+          "time": "05:07"
+        },
+        {
+          "track": "Feeling Good",
+          "artist": "Avicii",
+          "from": "2023-12-17",
+          "to": "2023-12-21",
+          "time": "08:01"
+        },
+        {
+          "track": "Naked",
+          "artist": "X Ambassadors",
+          "from": "2024-01-03",
+          "to": "2024-01-10",
+          "time": "05:10"
+        },
+        {
+          "track": "Celebrate!",
+          "artist": "Jonas Brothers",
+          "from": "2024-01-11",
+          "to": "2024-01-15",
+          "time": "05:06"
+        },
+        {
+          "track": "Bang Bang",
+          "artist": "Jessie J",
+          "from": "2024-01-28",
+          "to": "2024-01-30",
+          "time": "08:09"
+        },
+        {
+          "track": "Ghost",
+          "artist": "Justin Bieber",
+          "from": "2024-02-02",
+          "to": "2024-02-11",
+          "time": "06:11"
+        },
+        {
+          "track": "These Days",
+          "artist": "Wet",
+          "from": "2024-02-12",
+          "to": "2024-02-14",
+          "time": "05:13"
+        },
+        {
+          "track": "Always Be My Baby",
+          "artist": "Brasstracks",
+          "from": "2024-02-23",
+          "to": "2024-02-27",
+          "time": "07:16"
+        },
+        {
+          "track": "Wait for It",
+          "artist": "Leslie Odom Jr.",
+          "from": "2024-03-03",
+          "to": "2024-03-08",
+          "time": "05:05"
+        },
+        {
+          "track": "PAID MY DUES",
+          "artist": "NF",
+          "from": "2024-03-13",
+          "to": "2024-03-15",
+          "time": "05:24"
+        },
+        {
+          "track": "HAPPY",
+          "artist": "NF",
+          "from": "2024-03-20",
+          "to": "2024-03-24",
+          "time": "05:27"
+        },
+        {
+          "track": "Morning In America",
+          "artist": "Jon Bellion",
+          "from": "2024-03-25",
+          "to": "2024-03-27",
+          "time": "06:00"
+        },
+        {
+          "track": "Loveless",
+          "artist": "X Ambassadors",
+          "from": "2024-03-31",
+          "to": "2024-04-03",
+          "time": "07:50"
+        },
+        {
+          "track": "Come Together",
+          "artist": "Aerosmith",
+          "from": "2024-04-04",
+          "to": "2024-04-08",
+          "time": "06:00"
+        },
+        {
+          "track": "Little Bitty Pretty One",
+          "artist": "Thurston Harris",
+          "from": "2024-04-12",
+          "to": "2024-04-16",
+          "time": "06:22"
+        },
+        {
+          "track": "Domino",
+          "artist": "Jessie J",
+          "from": "2024-05-03",
+          "to": "2024-05-05",
+          "time": "05:07"
+        },
+        {
+          "track": "Looking Too Closely",
+          "artist": "Fink",
+          "from": "2024-05-20",
+          "to": "2024-06-09",
+          "time": "06:01"
+        },
+        {
+          "track": "Miracle",
+          "artist": "Jonas Brothers",
+          "from": "2024-05-28",
+          "to": "2024-06-01",
+          "time": "06:57"
+        },
+        {
+          "track": "Telling The World",
+          "artist": "Taio Cruz",
+          "from": "2024-06-30",
+          "to": "2024-07-06",
+          "time": "08:25"
+        },
+        {
+          "track": "Constellations",
+          "artist": "Ellie Holcomb",
+          "from": "2024-07-07",
+          "to": "2024-07-14",
+          "time": "08:55"
+        },
+        {
+          "track": "Royals",
+          "artist": "Lorde",
+          "from": "2024-07-10",
+          "to": "2024-07-12",
+          "time": "07:11"
+        },
+        {
+          "track": "All Of A Sudden (feat. Tiffany Hudson & Chris Brown)",
+          "artist": "Elevation Worship",
+          "from": "2024-07-13",
+          "to": "2024-07-18",
+          "time": "05:02"
+        },
+        {
+          "track": "Because He Lives (Amen) - Unplugged",
+          "artist": "Matt Maher",
+          "from": "2024-07-19",
+          "to": "2024-07-21",
+          "time": "04:59"
+        },
+        {
+          "track": "Glory, Honor, Power - Live",
+          "artist": "Influence Music",
+          "from": "2024-07-22",
+          "to": "2024-08-05",
+          "time": "06:29"
+        },
+        {
+          "track": "Talking to the Moon",
+          "artist": "Bruno Mars",
+          "from": "2024-08-06",
+          "to": "2024-08-08",
+          "time": "05:18"
+        },
+        {
+          "track": "Way down We Go",
+          "artist": "KALEO",
+          "from": "2024-08-15",
+          "to": "2024-08-18",
+          "time": "05:57"
+        },
+        {
+          "track": "Magic In The Hamptons (feat. Lil Yachty)",
+          "artist": "Social House",
+          "from": "2024-08-19",
+          "to": "2024-08-23",
+          "time": "06:13"
+        },
+        {
+          "track": "golden hour",
+          "artist": "JVKE",
+          "from": "2024-08-24",
+          "to": "2024-09-05",
+          "time": "06:30"
+        },
+        {
+          "track": "Something Beautiful",
+          "artist": "NEEDTOBREATHE",
+          "from": "2024-09-06",
+          "to": "2024-09-16",
+          "time": "06:30"
+        },
+        {
+          "track": "Lift Your Head Weary Sinner (Chains)",
+          "artist": "Crowder",
+          "from": "2024-09-17",
+          "to": "2024-09-24",
+          "time": "06:40"
+        },
+        {
+          "track": "Guillotine",
+          "artist": "Jon Bellion",
+          "from": "2024-09-26",
+          "to": "2024-10-08",
+          "time": "06:29"
+        },
+        {
+          "track": "The Mountain Is You",
+          "artist": "Chance Peña",
+          "from": "2024-10-12",
+          "to": "2024-10-20",
+          "time": "06:30"
+        },
+        {
+          "track": "Red Desert",
+          "artist": "5 Seconds of Summer",
+          "from": "2024-10-24",
+          "to": "2024-11-05",
+          "time": "06:30"
+        },
+        {
+          "track": "I Knew You Were Trouble.",
+          "artist": "Taylor Swift",
+          "from": "2024-10-27",
+          "to": "2024-11-01",
+          "time": "06:30"
+        },
+        {
+          "track": "Open the Eyes of My Heart",
+          "artist": "Audrey Assad",
+          "from": "2024-11-12",
+          "to": "2024-12-31",
+          "time": "05:07"
+        },
+        {
+          "track": "Never Had The Balls",
+          "artist": "Rex Orange County",
+          "from": "2024-11-19",
+          "to": "2025-02-09",
+          "time": "04:58"
+        },
+        {
+          "track": "The Heartburn Song",
+          "artist": "Lawrence",
+          "from": "2025-01-02",
+          "to": "2025-01-04",
+          "time": "07:28"
+        },
+        {
+          "track": "Promiscuous",
+          "artist": "Nelly Furtado",
+          "from": "2025-01-06",
+          "to": "2025-01-08",
+          "time": "04:52"
+        },
+        {
+          "track": "Love Tonight (David Guetta Remix Edit)",
+          "artist": "Shouse",
+          "from": "2025-01-09",
+          "to": "2025-01-12",
+          "time": "04:56"
+        },
+        {
+          "track": "YOUTH",
+          "artist": "Troye Sivan",
+          "from": "2025-01-22",
+          "to": "2025-01-24",
+          "time": "07:54"
+        },
+        {
+          "track": "Grenade",
+          "artist": "Bruno Mars",
+          "from": "2025-01-27",
+          "to": "2025-02-02",
+          "time": "04:55"
+        },
+        {
+          "track": "MIRACLE WORKER",
+          "artist": "Forrest Frank",
+          "from": "2025-02-04",
+          "to": "2025-02-07",
+          "time": "04:50"
+        },
+        {
+          "track": "Don’t Blame Me",
+          "artist": "Taylor Swift",
+          "from": "2025-02-10",
+          "to": "2025-02-13",
+          "time": "05:01"
+        },
+        {
+          "track": "illicit affairs",
+          "artist": "Taylor Swift",
+          "from": "2025-02-16",
+          "to": "2025-02-18",
+          "time": "08:05"
+        },
+        {
+          "track": "Tattoo",
+          "artist": "Loreen",
+          "from": "2025-02-21",
+          "to": "2025-03-30",
+          "time": "04:58"
+        },
+        {
+          "track": "Only Want The Best",
+          "artist": "Judah & the Lion",
+          "from": "2025-02-25",
+          "to": "2025-03-05",
+          "time": "04:55"
+        },
+        {
+          "track": "Cinema",
+          "artist": "Harry Styles",
+          "from": "2025-03-07",
+          "to": "2025-03-09",
+          "time": "04:58"
+        },
+        {
+          "track": "Blinding Lights",
+          "artist": "Loi",
+          "from": "2025-03-10",
+          "to": "2025-03-16",
+          "time": "04:58"
+        },
+        {
+          "track": "Never Had The Balls",
+          "artist": "Rex Orange County",
+          "from": "2025-03-28",
+          "to": "2025-05-08",
+          "time": "04:58"
+        },
+        {
+          "track": "Bad Life",
+          "artist": "Sigrid",
+          "from": "2025-04-05",
+          "to": "2025-04-08",
+          "time": "06:45"
+        },
+        {
+          "track": "Constellations",
+          "artist": "Ellie Holcomb",
+          "from": "2025-04-10",
+          "to": "2025-04-13",
+          "time": "04:57"
+        },
+        {
+          "track": "Titanium (feat. Sia)",
+          "artist": "David Guetta",
+          "from": "2025-04-14",
+          "to": "2025-04-29",
+          "time": "04:59"
+        },
+        {
+          "track": "Angels",
+          "artist": "Khalid",
+          "from": "2025-05-09",
+          "to": "2025-05-11",
+          "time": "07:30"
+        },
+        {
+          "track": "Save a Horse (Ride a Cowboy)",
+          "artist": "Big & Rich",
+          "from": "2025-05-12",
+          "to": "2025-05-18",
+          "time": "05:00"
+        },
+        {
+          "track": "Hot Rod",
+          "artist": "Dayglow",
+          "from": "2025-05-19",
+          "to": "2025-05-23",
+          "time": "05:00"
+        },
+        {
+          "track": "WHY (feat. Luke Combs)",
+          "artist": "Jon Bellion",
+          "from": "2025-05-24",
+          "to": "2025-05-26",
+          "time": "08:15"
+        },
+        {
+          "track": "FATHER FIGURE",
+          "artist": "Jon Bellion",
+          "from": "2025-06-06",
+          "to": "2025-06-09",
+          "time": "09:31"
+        },
+        {
+          "track": "RICH AND BROKE",
+          "artist": "Jon Bellion",
+          "from": "2025-06-10",
+          "to": "2025-07-15",
+          "time": "06:02"
+        },
+        {
+          "track": "Crown",
+          "artist": "Song House",
+          "from": "2025-07-22",
+          "to": "2025-07-24",
+          "time": "06:49"
+        },
+        {
+          "track": "Do It Again",
+          "artist": "Elevation Worship",
+          "from": "2025-07-25",
+          "to": "2025-08-11",
+          "time": "06:30"
+        },
+        {
+          "track": "Never Had The Balls",
+          "artist": "Rex Orange County",
+          "from": "2025-08-14",
+          "to": "2025-09-14",
+          "time": "06:45"
+        },
+        {
+          "track": "Under Pressure - Remastered 2011",
+          "artist": "Queen",
+          "from": "2025-08-21",
+          "to": "2025-09-28",
+          "time": "08:48"
+        },
+        {
+          "track": "How Long, How Low?",
+          "artist": "Chance Peña",
+          "from": "2025-08-27",
+          "to": "2025-09-02",
+          "time": "05:00"
+        },
+        {
+          "track": "Golden (Huntr/x French) Kpop Demon Hunter",
+          "artist": "Anime Soul Music",
+          "from": "2025-09-15",
+          "to": "2025-09-17",
+          "time": "06:36"
+        },
+        {
+          "track": "Sweet Dreams (feat. Miguel)",
+          "artist": "j-hope",
+          "from": "2025-09-18",
+          "to": "2025-09-24",
+          "time": "08:00"
+        },
+        {
+          "track": "Pink Pony Club",
+          "artist": "Chappell Roan",
+          "from": "2025-09-29",
+          "to": "2025-10-01",
+          "time": "05:05"
+        },
+        {
+          "track": "Thriller",
+          "artist": "Michael Jackson",
+          "from": "2025-10-08",
+          "to": "2025-10-10",
+          "time": "05:06"
+        },
+        {
+          "track": "Be Thou My Vision",
+          "artist": "Audrey Assad",
+          "from": "2025-10-16",
+          "to": "2025-10-19",
+          "time": "04:40"
+        },
+        {
+          "track": "Never Had The Balls",
+          "artist": "Rex Orange County",
+          "from": "2026-04-27",
+          "to": "2026-07-02",
+          "time": "07:58"
+        },
+        {
+          "track": "Dark Horse",
+          "artist": "Katy Perry",
+          "from": "2026-04-30",
+          "to": "2026-05-03",
+          "time": "04:57"
+        },
+        {
+          "track": "Castle on the Hill",
+          "artist": "Ed Sheeran",
+          "from": "2026-07-09",
+          "to": "2026-07-20",
+          "time": "05:55"
+        },
+        {
+          "track": "Lose Control",
+          "artist": "Elijah Waters",
+          "from": "2026-07-21",
+          "to": "2026-08-07",
+          "time": "05:55"
+        }
+      ]
     },
     {
       "id": "shoulders_repeat",

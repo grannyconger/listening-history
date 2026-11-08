@@ -177,12 +177,38 @@ for ru in rules:
                     r.setdefault('_overnight', set()).add(ru['id'])
         i = j + 1
 
+# ---------- wake-up alarms (rules with "type": "wake_alarm") ----------
+# An Alexa / Google Home routine played a song as an alarm. Only that day's first play at or after
+# params.after counts as the alarm, and only when it matches a listed song inside that song's date
+# range and looks like a routine started it (a smart speaker, started remotely, not a phone tap).
+# Pick the songs with scripts/find_alarms.py. Other plays of the same songs still count.
+def is_speaker(platform):
+    p = str(platform or '').lower()
+    return p == 'not_applicable' or 'echo' in p or 'amazon' in p
+for ru in rules:
+    if ru.get('type') != 'wake_alarm':
+        continue
+    p = {'after': '04:00', 'reasons': ['remote', 'playbtn'], **ru.get('params', {})}
+    alarms = collections.defaultdict(list)
+    for a in ru.get('alarms', []):
+        alarms[(a['track'].casefold().strip(), a['artist'])].append((a['from'], a['to']))
+    seen_days = set()
+    for r in recs:
+        ls = r['_start'].astimezone(tz_for(r))
+        if ls.hour * 60 + ls.minute < hm(p['after']) or ls.date() in seen_days:
+            continue
+        seen_days.add(ls.date())
+        d = ls.date().isoformat()
+        if (r.get('reason_start') in p['reasons'] and is_speaker(r.get('platform'))
+                and any(f <= d <= t for f, t in alarms.get(song_key(r), ()))):
+            r.setdefault('_overnight', set()).add(ru['id'])
+
 def rule_mask(r, local):
     mask = 0
     tn, ar, al = r.get('master_metadata_track_name') or '', r.get('master_metadata_album_artist_name') or '', r.get('master_metadata_album_album_name') or ''
     sh = r.get('episode_show_name') or ''
     for ru in rules:
-        if ru.get('type') in ('overnight', 'repeat_run'):
+        if ru.get('type') in ('overnight', 'repeat_run', 'wake_alarm'):
             if ru['id'] in r.get('_overnight', ()):
                 mask |= 1 << ru['bit']
             continue

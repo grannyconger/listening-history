@@ -548,6 +548,76 @@ function weekBlock() {
   const wn = $('#wnow'); if (wn) wn.onclick = () => { RD.weekOffset = 0; weekBlock(); };
 }
 
+// ---------------- Binge: songs played heavily in one season
+// Seasons: winter Dec–Feb (December counts toward the next year's winter), spring Mar–May, summer Jun–Aug, fall Sep–Nov.
+const SEASONS = ['Winter', 'Spring', 'Summer', 'Fall'];
+const seasonOf = (y, m) => (m === 11 ? (y + 1) * 4 : y * 4 + Math.floor((m + 1) / 3) % 4);
+function seasonLabel(k) { const y = Math.floor(k / 4), q = k % 4; return q === 0 ? `Winter ${y - 1}–${String(y).slice(2)}` : `${SEASONS[q]} ${y}`; }
+const BINGE_MIN = 8; // plays in the season before a song can count as a binge
+function bingeData() {
+  return memo('binge', () => {
+    const act = active(), total = trackStatsAll().plays, per = new Map(); // season -> Map(track -> {n, days: Map(day -> n)})
+    for (let p = 0; p < P.n; p++) {
+      if (!act[p] || P.k[p] !== 0 || P.s[p] < 30) continue;
+      const k = seasonOf(P.year[p], P.mon[p]); let m = per.get(k); if (!m) per.set(k, m = new Map());
+      let o = m.get(P.i[p]); if (!o) m.set(P.i[p], o = { n: 0, days: new Map() });
+      o.n++; o.days.set(P.day[p], (o.days.get(P.day[p]) || 0) + 1);
+    }
+    const seasons = [];
+    per.forEach((m, k) => {
+      const songs = [];
+      m.forEach((o, t) => {
+        if (o.n < BINGE_MIN) return;
+        const share = o.n / (total[t] || o.n);
+        const [bestDay, bestN] = [...o.days].sort((a, b) => b[1] - a[1])[0];
+        songs.push({ t, n: o.n, share, bestDay, bestN, score: o.n * share });
+      });
+      songs.sort((a, b) => b.score - a.score);
+      if (songs.length) seasons.push({ k, songs });
+    });
+    seasons.sort((a, b) => a.k - b.k);
+    return seasons;
+  }, false);
+}
+const BG = { shown: 10 };
+V.binge = ([kS]) => {
+  const seasons = bingeData();
+  if (!seasons.length) { view().innerHTML = `<section class="page-intro"><h1>Binge</h1><p>${esc(filterNote())} No songs were played enough in one season to count.</p></section>`; return; }
+  const byK = new Map(seasons.map(s => [s.k, s]));
+  const cur = byK.get(+kS) || seasons[seasons.length - 1];
+  const y0 = Math.floor(seasons[0].k / 4), y1 = Math.floor(seasons[seasons.length - 1].k / 4);
+  const rows = d3.range(y1, y0 - 1, -1).map(y => {
+    const cells = SEASONS.map((_, q) => {
+      const s = byK.get(y * 4 + q);
+      if (!s) return `<span class="binge-cell empty" aria-hidden="true"></span>`;
+      const top = s.songs[0], [name, ai] = D.lib.tracks[top.t];
+      return `<a class="binge-cell ${s.k === cur.k ? 'on' : ''}" href="#/binge/${s.k}" aria-label="${esc(seasonLabel(s.k))}: ${esc(name)} by ${esc(D.lib.artists[ai])}" ${s.k === cur.k ? 'aria-current="true"' : ''}>${img(trackUrl(top.t), name, 'cover')}<span class="t">${esc(name)}</span></a>`;
+    }).join('');
+    return `<div class="binge-row"><span class="binge-year">${y}</span>${cells}</div>`;
+  }).join('');
+  const list = cur.songs.slice(0, BG.shown);
+  const lead = cur.songs[0];
+  view().innerHTML = `
+    <section class="page-intro"><h1>Binge</h1><p>The songs you couldn't stop playing, season by season. A binge is a song you played at least ${BINGE_MIN} times in one season, ranked by how many of its plays ever happened in that season.</p></section>
+    <section class="block">
+      <h2>${esc(seasonLabel(cur.k))}</h2>
+      <p class="sub">${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])} was your biggest binge, ${fmtInt(lead.n)} plays. ${lead.share >= 0.5 ? `That's ${pct(lead.share)} of every play it has ever had.` : ''}${lead.bestN >= 3 ? ` On ${fmtDay(lead.bestDay)} alone you played it ${lead.bestN} times.` : ''}</p>
+      <ol class="rank-list">${list.map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays, ${pct(s.share)} of all its plays`, i + 1)).join('')}</ol>
+      ${cur.songs.length > BG.shown ? `<button class="btn ghost more" id="bmore">Show ${Math.min(10, cur.songs.length - BG.shown)} more</button>` : ''}
+    </section>
+    <section class="block">
+      <h2>Every season</h2>
+      <p class="sub">The top binge of each season. Pick one to see its list.</p>
+      <p class="note">${esc(filterNote())}</p>
+      <div class="binge-grid">
+        <div class="binge-row head" aria-hidden="true"><span class="binge-year"></span>${SEASONS.map(s => `<span class="binge-season">${s}</span>`).join('')}</div>
+        ${rows}
+      </div>
+    </section>`;
+  const m = $('#bmore'); if (m) m.onclick = () => { BG.shown += 10; V.binge([String(cur.k)]); };
+  view().querySelectorAll('.binge-cell[href]').forEach(a => a.addEventListener('click', () => { BG.shown = 10; }));
+};
+
 // ---------------- Explore: library + cover wall
 const LIB = { tab: 'tracks', q: '', sort: 'secs', shown: 50 };
 V.explore = ([tab]) => {
@@ -757,7 +827,7 @@ V.hidden = () => {
 V.notfound = () => { view().innerHTML = '<section class="page-intro"><h1>This page does not exist</h1><p><a href="#/">Go to your story</a></p></section>'; };
 
 // ================================================================ chrome: router, player, search, filters
-const NAV = [['story', 'Story'], ['rediscover', 'Rediscover'], ['explore', 'Explore'], ['patterns', 'Patterns']];
+const NAV = [['story', 'Story'], ['rediscover', 'Rediscover'], ['binge', 'Binge'], ['explore', 'Explore'], ['patterns', 'Patterns']];
 const ALIASES = { '': 'story', overview: 'story', wrapped: 'story', library: 'explore', covers: 'explore', trends: 'patterns', habits: 'patterns', sessions: 'patterns', discovery: 'patterns', podcasts: 'patterns', onthisday: 'rediscover', excluded: 'hidden' };
 function route() {
   if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }

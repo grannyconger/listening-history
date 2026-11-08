@@ -278,3 +278,17 @@ details.data-table .tbl { font-size: 15px; }
   .lede h1 { font-size: 34px; }
   .chapter h2 { font-size: 26px; }
 }
+
+/* ---------- binge ---------- */
+.binge-grid { display: grid; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+.binge-row { display: grid; grid-template-columns: 56px repeat(4, minmax(96px, 1fr)); gap: 14px; align-items: start; min-width: 470px; }
+.binge-year { font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; padding-top: 6px; }
+.binge-season { font-size: 15px; color: var(--text-secondary); font-weight: 600; }
+.binge-cell { display: block; color: var(--text-secondary); min-width: 0; }
+.binge-cell:hover { color: var(--ink); text-decoration: none; }
+.binge-cell .art.cover { width: 100%; max-width: 140px; height: auto; aspect-ratio: 1; display: block; transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+.binge-cell:hover .art.cover { transform: translateY(-3px); }
+.binge-cell .t { display: block; font-size: 15px; margin-top: 6px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.binge-cell.on .t { color: var(--ink); font-weight: 600; }
+.binge-cell.on .art.cover { outline: 3px solid var(--accent); outline-offset: 3px; }
+.binge-cell.empty { min-height: 1px; }
