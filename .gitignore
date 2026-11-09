@@ -6,3 +6,8 @@ Streaming_History_*.json
 *.pdf
 __pycache__/
 .DS_Store
+
+# Impeccable design workspace (mocks, review captures)
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/

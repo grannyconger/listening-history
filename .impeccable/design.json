@@ -1,0 +1,1014 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T21:36:04-05:00",
+  "title": "Design System: Listening History",
+  "extensions": {
+    "colorMeta": {
+      "yearbook-navy": {
+        "role": "primary",
+        "displayName": "Yearbook Navy",
+        "canonical": "#1d2a5b",
+        "oklch": "oklch(30.4% 0.089 269.3)",
+        "tonalRamp": [
+          "#060a1a",
+          "#192343",
+          "#2f3e71",
+          "#4d5e94",
+          "#6d80b8",
+          "#8ea3de",
+          "#b2c7ff",
+          "#deeeff"
+        ],
+        "edition": "day",
+        "cssVar": "--navy"
+      },
+      "school-gold": {
+        "role": "secondary",
+        "displayName": "School Gold",
+        "canonical": "#f2b632",
+        "oklch": "oklch(81.1% 0.153 82.1)",
+        "tonalRamp": [
+          "#170700",
+          "#3e1b00",
+          "#683300",
+          "#8b5400",
+          "#af7600",
+          "#d49900",
+          "#f9bf44",
+          "#ffe89e"
+        ],
+        "edition": "day",
+        "cssVar": "--gold"
+      },
+      "gold-ink": {
+        "role": "secondary",
+        "displayName": "Gold Ink",
+        "canonical": "#8a5f00",
+        "oklch": "oklch(51.8% 0.108 77.9)",
+        "tonalRamp": [
+          "#150800",
+          "#391e00",
+          "#603800",
+          "#825800",
+          "#a6792b",
+          "#ca9c51",
+          "#efc178",
+          "#ffe9b8"
+        ],
+        "edition": "day",
+        "cssVar": "--gold-ink"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "edition": "day",
+        "cssVar": "--page"
+      },
+      "paper-shade": {
+        "role": "neutral",
+        "displayName": "Paper Shade",
+        "canonical": "#f5f3ec",
+        "oklch": "oklch(96.4% 0.010 93.6)",
+        "tonalRamp": [
+          "#0c0b07",
+          "#272520",
+          "#44423c",
+          "#63615b",
+          "#84827c",
+          "#a7a59e",
+          "#cbc9c2",
+          "#f0eee7"
+        ],
+        "edition": "day",
+        "cssVar": "--paper-2"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#16130f",
+        "oklch": "oklch(18.9% 0.009 75.1)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#282420",
+          "#45413d",
+          "#64615c",
+          "#86827c",
+          "#a8a49f",
+          "#cdc8c3",
+          "#f2eee8"
+        ],
+        "edition": "day",
+        "cssVar": "--ink"
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "#4d4a45",
+        "oklch": "oklch(41.0% 0.009 80.7)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#272520",
+          "#44423d",
+          "#64615c",
+          "#85827c",
+          "#a8a49f",
+          "#ccc9c3",
+          "#f2eee8"
+        ],
+        "edition": "day",
+        "cssVar": "--text-secondary"
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "#6e6a63",
+        "oklch": "oklch(52.6% 0.012 81.8)",
+        "tonalRamp": [
+          "#0e0b06",
+          "#28251f",
+          "#45413b",
+          "#65615a",
+          "#86827a",
+          "#a9a49d",
+          "#cdc8c1",
+          "#f2eee6"
+        ],
+        "edition": "day",
+        "cssVar": "--text-muted"
+      },
+      "masthead-muted": {
+        "role": "neutral",
+        "displayName": "Masthead Muted",
+        "canonical": "#c3cbe6",
+        "oklch": "oklch(84.4% 0.039 272.5)",
+        "tonalRamp": [
+          "#090b12",
+          "#202432",
+          "#3b4157",
+          "#596078",
+          "#7a819a",
+          "#9ca4be",
+          "#c0c8e2",
+          "#e8eeff"
+        ],
+        "edition": "day",
+        "cssVar": "--mast-muted"
+      },
+      "grid-line": {
+        "role": "neutral",
+        "displayName": "Grid Line",
+        "canonical": "#e7e4dc",
+        "oklch": "oklch(91.9% 0.011 89.7)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251f",
+          "#44423b",
+          "#64615a",
+          "#85827b",
+          "#a8a59d",
+          "#ccc9c1",
+          "#f1eee6"
+        ],
+        "edition": "day",
+        "cssVar": "--grid"
+      },
+      "axis-line": {
+        "role": "neutral",
+        "displayName": "Axis Line",
+        "canonical": "#c9c4b8",
+        "oklch": "oklch(82.1% 0.017 88.0)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#29251b",
+          "#464238",
+          "#656156",
+          "#878277",
+          "#a9a599",
+          "#cec9bd",
+          "#f3eee2"
+        ],
+        "edition": "day",
+        "cssVar": "--axis"
+      },
+      "podcast-orange": {
+        "role": "tertiary",
+        "displayName": "Podcast Orange",
+        "canonical": "#e0662e",
+        "oklch": "oklch(65.1% 0.167 42.8)",
+        "tonalRamp": [
+          "#200000",
+          "#4f0000",
+          "#830000",
+          "#a93300",
+          "#d1581c",
+          "#f97c46",
+          "#ffa36f",
+          "#ffd6b3"
+        ],
+        "edition": "day",
+        "cssVar": "--series-2"
+      },
+      "audiobook-green": {
+        "role": "tertiary",
+        "displayName": "Audiobook Green",
+        "canonical": "#1f9a6c",
+        "oklch": "oklch(61.0% 0.125 162.1)",
+        "tonalRamp": [
+          "#001105",
+          "#003117",
+          "#00552c",
+          "#00764b",
+          "#1d996b",
+          "#4dbd8d",
+          "#78e2b1",
+          "#bcffde"
+        ],
+        "edition": "day",
+        "cssVar": "--series-3"
+      },
+      "heat-0": {
+        "role": "neutral",
+        "displayName": "Heat 0",
+        "canonical": "#f1efe8",
+        "oklch": "oklch(95.2% 0.010 93.6)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-0"
+      },
+      "heat-1": {
+        "role": "neutral",
+        "displayName": "Heat 1",
+        "canonical": "#dfe3f0",
+        "oklch": "oklch(91.7% 0.018 272.3)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-1"
+      },
+      "heat-2": {
+        "role": "neutral",
+        "displayName": "Heat 2",
+        "canonical": "#b9c3e0",
+        "oklch": "oklch(81.9% 0.042 270.4)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-2"
+      },
+      "heat-3": {
+        "role": "neutral",
+        "displayName": "Heat 3",
+        "canonical": "#8796c7",
+        "oklch": "oklch(68.0% 0.075 271.1)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-3"
+      },
+      "heat-4": {
+        "role": "neutral",
+        "displayName": "Heat 4",
+        "canonical": "#5568a8",
+        "oklch": "oklch(53.1% 0.103 270.1)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-4"
+      },
+      "heat-5": {
+        "role": "neutral",
+        "displayName": "Heat 5",
+        "canonical": "#34458a",
+        "oklch": "oklch(41.5% 0.116 270.2)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-5"
+      },
+      "heat-6": {
+        "role": "neutral",
+        "displayName": "Heat 6",
+        "canonical": "#1d2a5b",
+        "oklch": "oklch(30.4% 0.089 269.3)",
+        "tonalRamp": [
+          "#f1efe8",
+          "#dfe3f0",
+          "#b9c3e0",
+          "#8796c7",
+          "#5568a8",
+          "#34458a",
+          "#1d2a5b"
+        ],
+        "edition": "day",
+        "cssVar": "--seq-6"
+      },
+      "night-page": {
+        "role": "neutral",
+        "displayName": "Night Page",
+        "canonical": "#0f1530",
+        "oklch": "oklch(20.7% 0.054 271.5)",
+        "tonalRamp": [
+          "#080b14",
+          "#1e2438",
+          "#38405f",
+          "#566080",
+          "#7681a3",
+          "#99a4c8",
+          "#bdc8ec",
+          "#e5eeff"
+        ],
+        "edition": "night",
+        "cssVar": "--page"
+      },
+      "night-paper-shade": {
+        "role": "neutral",
+        "displayName": "Night Paper Shade",
+        "canonical": "#151c3c",
+        "oklch": "oklch(23.9% 0.062 271.7)",
+        "tonalRamp": [
+          "#080a16",
+          "#1d243a",
+          "#364063",
+          "#555f85",
+          "#7581a8",
+          "#97a3cd",
+          "#bbc8f1",
+          "#e4eeff"
+        ],
+        "edition": "night",
+        "cssVar": "--paper-2"
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Night Surface",
+        "canonical": "#19214a",
+        "oklch": "oklch(26.6% 0.076 271.9)",
+        "tonalRamp": [
+          "#070a18",
+          "#1c233f",
+          "#343f6a",
+          "#525e8d",
+          "#7280b1",
+          "#94a3d6",
+          "#b8c7fa",
+          "#e2edff"
+        ],
+        "edition": "night",
+        "cssVar": "--surface-1"
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "#f4f1e8",
+        "oklch": "oklch(95.8% 0.012 91.5)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
+          "#f1eee5"
+        ],
+        "edition": "night",
+        "cssVar": "--ink (and --navy-ink)"
+      },
+      "night-ink-secondary": {
+        "role": "neutral",
+        "displayName": "Night Ink Secondary",
+        "canonical": "#c4c8da",
+        "oklch": "oklch(83.5% 0.025 275.8)",
+        "tonalRamp": [
+          "#0a0b10",
+          "#22242e",
+          "#3e4150",
+          "#5d6070",
+          "#7e8192",
+          "#a0a4b5",
+          "#c4c8da",
+          "#ebeefa"
+        ],
+        "edition": "night",
+        "cssVar": "--text-secondary"
+      },
+      "night-ink-muted": {
+        "role": "neutral",
+        "displayName": "Night Ink Muted",
+        "canonical": "#969cb6",
+        "oklch": "oklch(69.7% 0.039 275.1)",
+        "tonalRamp": [
+          "#090b12",
+          "#212432",
+          "#3c4157",
+          "#5b6078",
+          "#7b819a",
+          "#9ea4be",
+          "#c2c8e2",
+          "#e9eeff"
+        ],
+        "edition": "night",
+        "cssVar": "--text-muted"
+      },
+      "night-navy": {
+        "role": "primary",
+        "displayName": "Night Navy",
+        "canonical": "#9fb2f0",
+        "oklch": "oklch(77.2% 0.092 271.0)",
+        "tonalRamp": [
+          "#060a1a",
+          "#1a2244",
+          "#303d72",
+          "#4e5d95",
+          "#6e7fba",
+          "#90a2df",
+          "#b3c7ff",
+          "#dfedff"
+        ],
+        "edition": "night",
+        "cssVar": "--navy"
+      },
+      "night-gold-ink": {
+        "role": "secondary",
+        "displayName": "Night Gold Ink",
+        "canonical": "#f2c75a",
+        "oklch": "oklch(84.7% 0.135 87.6)",
+        "tonalRamp": [
+          "#150800",
+          "#381f00",
+          "#603900",
+          "#815a00",
+          "#a47c00",
+          "#c99f2a",
+          "#edc45b",
+          "#ffeca8"
+        ],
+        "edition": "night",
+        "cssVar": "--gold-ink"
+      },
+      "night-masthead": {
+        "role": "neutral",
+        "displayName": "Night Masthead",
+        "canonical": "#0a0f24",
+        "oklch": "oklch(17.7% 0.044 271.2)",
+        "tonalRamp": [
+          "#080b13",
+          "#1f2434",
+          "#39415a",
+          "#58607b",
+          "#78819d",
+          "#9ba4c1",
+          "#bfc8e6",
+          "#e7eeff"
+        ],
+        "edition": "night",
+        "cssVar": "--mast"
+      },
+      "night-masthead-muted": {
+        "role": "neutral",
+        "displayName": "Night Masthead Muted",
+        "canonical": "#a7aecb",
+        "oklch": "oklch(75.5% 0.042 274.6)",
+        "tonalRamp": [
+          "#090b12",
+          "#212434",
+          "#3b4059",
+          "#5a607a",
+          "#7a819c",
+          "#9da4c0",
+          "#c1c8e5",
+          "#e8eeff"
+        ],
+        "edition": "night",
+        "cssVar": "--mast-muted"
+      },
+      "night-grid-line": {
+        "role": "neutral",
+        "displayName": "Night Grid Line",
+        "canonical": "#252d55",
+        "oklch": "oklch(31.2% 0.072 273.0)",
+        "tonalRamp": [
+          "#070a17",
+          "#1d233e",
+          "#353f68",
+          "#545e8b",
+          "#7480ae",
+          "#96a3d3",
+          "#bac7f8",
+          "#e3edff"
+        ],
+        "edition": "night",
+        "cssVar": "--grid"
+      },
+      "night-axis-line": {
+        "role": "neutral",
+        "displayName": "Night Axis Line",
+        "canonical": "#3b4475",
+        "oklch": "oklch(40.3% 0.083 274.2)",
+        "tonalRamp": [
+          "#070a19",
+          "#1d2241",
+          "#353d6e",
+          "#535d90",
+          "#737fb4",
+          "#95a2da",
+          "#b9c6fe",
+          "#e3edff"
+        ],
+        "edition": "night",
+        "cssVar": "--axis"
+      },
+      "night-series-navy": {
+        "role": "primary",
+        "displayName": "Night Series Navy",
+        "canonical": "#8ea3ec",
+        "oklch": "oklch(72.8% 0.109 271.2)",
+        "tonalRamp": [
+          "#06091d",
+          "#18214a",
+          "#2e3b7b",
+          "#4b5c9f",
+          "#6b7ec4",
+          "#8ca1ea",
+          "#b0c6ff",
+          "#dcedff"
+        ],
+        "edition": "night",
+        "cssVar": "--series-1"
+      },
+      "night-podcast-orange": {
+        "role": "tertiary",
+        "displayName": "Night Podcast Orange",
+        "canonical": "#e57a45",
+        "oklch": "oklch(69.1% 0.149 45.5)",
+        "tonalRamp": [
+          "#1d0200",
+          "#4a0900",
+          "#7c1600",
+          "#a23d00",
+          "#c86029",
+          "#f0844f",
+          "#ffa976",
+          "#ffdab7"
+        ],
+        "edition": "night",
+        "cssVar": "--series-2"
+      },
+      "night-audiobook-green": {
+        "role": "tertiary",
+        "displayName": "Night Audiobook Green",
+        "canonical": "#2fb584",
+        "oklch": "oklch(69.0% 0.135 163.5)",
+        "tonalRamp": [
+          "#001105",
+          "#003217",
+          "#00562d",
+          "#00784b",
+          "#009b6b",
+          "#3dbf8d",
+          "#6de4b1",
+          "#b6ffde"
+        ],
+        "edition": "night",
+        "cssVar": "--series-3"
+      },
+      "night-heat-0": {
+        "role": "neutral",
+        "displayName": "Night Heat 0",
+        "canonical": "#18204a",
+        "oklch": "oklch(26.3% 0.078 271.9)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-0"
+      },
+      "night-heat-1": {
+        "role": "neutral",
+        "displayName": "Night Heat 1",
+        "canonical": "#1f2d66",
+        "oklch": "oklch(32.1% 0.102 269.5)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-1"
+      },
+      "night-heat-2": {
+        "role": "neutral",
+        "displayName": "Night Heat 2",
+        "canonical": "#2b3f88",
+        "oklch": "oklch(39.5% 0.124 268.6)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-2"
+      },
+      "night-heat-3": {
+        "role": "neutral",
+        "displayName": "Night Heat 3",
+        "canonical": "#3f58ab",
+        "oklch": "oklch(48.5% 0.136 268.4)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-3"
+      },
+      "night-heat-4": {
+        "role": "neutral",
+        "displayName": "Night Heat 4",
+        "canonical": "#6079c7",
+        "oklch": "oklch(59.2% 0.123 269.0)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-4"
+      },
+      "night-heat-5": {
+        "role": "neutral",
+        "displayName": "Night Heat 5",
+        "canonical": "#93a7e3",
+        "oklch": "oklch(73.6% 0.090 269.9)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-5"
+      },
+      "night-heat-6": {
+        "role": "neutral",
+        "displayName": "Night Heat 6",
+        "canonical": "#d3dcf8",
+        "oklch": "oklch(89.6% 0.040 271.4)",
+        "tonalRamp": [
+          "#18204a",
+          "#1f2d66",
+          "#2b3f88",
+          "#3f58ab",
+          "#6079c7",
+          "#93a7e3",
+          "#d3dcf8"
+        ],
+        "edition": "night",
+        "cssVar": "--seq-6"
+      }
+    },
+    "typographyMeta": {
+      "year-numeral": {
+        "displayName": "Year Numeral",
+        "purpose": "Giant year opening each spread, aria-hidden."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Story cover title only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles; hero pages up to clamp(40px, 5.5vw, 72px)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings."
+      },
+      "slab-label": {
+        "displayName": "Slab Label",
+        "purpose": "Superlative names, column heads, year labels."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Third-level sans headings."
+      },
+      "superlative-title": {
+        "displayName": "Superlative Title",
+        "purpose": "The winning song or album."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "One-sentence finding under a heading, max 68ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text, 17px under 900px, max 68ch."
+      },
+      "ui": {
+        "displayName": "Ui",
+        "purpose": "Tabs, buttons, picker items."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Portrait and cover captions, artist lines, table headers, legends."
+      },
+      "now-playing": {
+        "displayName": "Now Playing",
+        "purpose": "Status line under the playing item, Gold Ink."
+      }
+    },
+    "shadows": [
+      {
+        "name": "lift",
+        "value": "0 2px 6px rgba(22, 19, 15, .08), 0 18px 40px rgba(22, 19, 15, .16)",
+        "purpose": "Picked-up covers and floating layers (search results, filters, tooltip, toast, player)."
+      },
+      {
+        "name": "lift-night",
+        "value": "0 18px 40px rgba(0, 0, 0, .5)",
+        "purpose": "Lift on night pages."
+      },
+      {
+        "name": "playing-ring",
+        "value": "var(--lift), 0 0 0 4px var(--gold)",
+        "purpose": "Art of the item that is playing, with translateY(-3px)."
+      },
+      {
+        "name": "gold-press",
+        "value": "inset 0 -4px 0 var(--gold)",
+        "purpose": "Primary button hover; 2px version is the resting playlist-action underline."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-step",
+        "value": "cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "All lifts, badge reveals and the player rise."
+      },
+      {
+        "name": "duration-control",
+        "value": "150ms",
+        "purpose": "Play button fill, switch knob."
+      },
+      {
+        "name": "duration-lift",
+        "value": "200ms",
+        "purpose": "Cover and portrait lift on hover, playing lift."
+      },
+      {
+        "name": "duration-rise",
+        "value": "350ms",
+        "purpose": "Player dock rises 24px into place."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none",
+        "purpose": "All motion removed under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "masthead-wrap",
+        "value": "1360px"
+      },
+      {
+        "name": "spread-stack",
+        "value": "960px"
+      },
+      {
+        "name": "single-column",
+        "value": "900px"
+      },
+      {
+        "name": "phone",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": "masthead",
+      "description": "Sticky navy band with slab gold brand and white tabs; active tab carries a 3px gold underline.",
+      "html": "<header class=\"ds-mast\"><a class=\"ds-brand\" href=\"#\">Listening History</a><nav class=\"ds-nav\"><a class=\"on\" href=\"#\">Story</a><a href=\"#\">Eras</a><a href=\"#\">Rediscover</a><a href=\"#\">Explore</a></nav></header>",
+      "css": ".ds-mast{display:flex;align-items:center;gap:28px;padding:14px 24px;background:var(--mast,#1d2a5b);color:var(--mast-ink,#fff);font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-brand{font-family:\"Alfa Slab One\",Rockwell,serif;font-size:22px;color:var(--gold,#f2b632);text-decoration:none;white-space:nowrap}.ds-nav{display:flex;gap:22px}.ds-nav a{font-size:17px;font-weight:600;color:var(--mast-muted,#c3cbe6);padding:6px 0;border-bottom:3px solid transparent;text-decoration:none}.ds-nav a:hover{color:var(--mast-ink,#fff)}.ds-nav a.on{color:var(--mast-ink,#fff);border-bottom-color:var(--gold,#f2b632)}.ds-nav a:focus-visible,.ds-brand:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Square navy slab; hover presses a 4px gold bar up from the bottom.",
+      "html": "<button class=\"ds-btn\" type=\"button\">Play this year</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:8px;font:600 17px/1.55 \"Atkinson Hyperlegible Next\",system-ui,sans-serif;border:0;border-radius:0;background:var(--navy,#1d2a5b);color:#fff;padding:10px 18px;cursor:pointer}.ds-btn:hover{box-shadow:inset 0 -4px 0 var(--gold,#f2b632)}.ds-btn:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}.ds-btn[disabled]{opacity:.55;cursor:default}"
+    },
+    {
+      "name": "Text Button and Playlist Actions",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Plain navy words; playlist actions rest on a 2px gold underline that thickens to 4px.",
+      "html": "<div class=\"ds-mix\"><button class=\"ds-act\" type=\"button\">Save as a playlist</button><button class=\"ds-ghost\" type=\"button\">Copy song list</button></div>",
+      "css": ".ds-mix{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-act,.ds-ghost{background:none;border:0;border-radius:0;font:inherit;cursor:pointer;padding:4px 0}.ds-act{color:var(--navy-ink,#1d2a5b);font-size:16px;font-weight:700;box-shadow:inset 0 -2px 0 var(--gold,#f2b632)}.ds-act:hover{box-shadow:inset 0 -4px 0 var(--gold,#f2b632)}.ds-ghost{color:var(--text-secondary,#4d4a45);font-size:16px;font-weight:600}.ds-ghost:hover{color:var(--ink,#16130f);text-decoration:underline;text-decoration-color:var(--gold,#f2b632);text-underline-offset:4px;text-decoration-thickness:2px}.ds-act:focus-visible,.ds-ghost:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Play Button",
+      "kind": "button",
+      "refersTo": "play-button",
+      "description": "40px ringed circle that fills gold on hover.",
+      "html": "<button class=\"ds-play\" type=\"button\" aria-label=\"Play\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></button>",
+      "css": ".ds-play{width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--navy-ink,#1d2a5b);display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 2px var(--axis,#c9c4b8);transition:background .15s,box-shadow .15s,color .15s}.ds-play svg{margin-left:2px}.ds-play:hover{background:var(--gold,#f2b632);color:#16130f;box-shadow:none}.ds-play:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Year Picker",
+      "kind": "chip",
+      "refersTo": "picker-item",
+      "description": "Plain year words, current year navy 800 with a 3px gold underline. Not pills.",
+      "html": "<nav class=\"ds-picker\" aria-label=\"Year\"><button type=\"button\">All years</button><button type=\"button\">2019</button><button type=\"button\" class=\"on\">2020</button><button type=\"button\">2021</button></nav>",
+      "css": ".ds-picker{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-picker button{font:inherit;font-size:17px;background:none;border:0;border-bottom:3px solid transparent;padding:4px 0;color:var(--text-secondary,#4d4a45);cursor:pointer;font-variant-numeric:tabular-nums}.ds-picker button:hover{color:var(--ink,#16130f)}.ds-picker .on{color:var(--navy-ink,#1d2a5b);font-weight:800;border-bottom-color:var(--gold,#f2b632)}.ds-picker button:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Underline Input",
+      "kind": "input",
+      "refersTo": "input-underline",
+      "description": "Borderless field on a 2px axis underline; focus swaps to a 3px gold underline.",
+      "html": "<label class=\"ds-field\"><span>From artist</span><input class=\"ds-input\" placeholder=\"Type an artist\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:4px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-field span{font-size:15px;font-weight:700;color:var(--text-secondary,#4d4a45)}.ds-input{font:inherit;font-size:17px;color:var(--ink,#16130f);background:var(--surface-1,#fff);border:0;border-radius:0;box-shadow:inset 0 -2px 0 var(--axis,#c9c4b8);padding:9px 4px;caret-color:var(--gold-ink,#8a5f00)}.ds-input:focus{outline:none;box-shadow:inset 0 -3px 0 var(--gold,#f2b632)}"
+    },
+    {
+      "name": "Superlative",
+      "kind": "custom",
+      "refersTo": "superlative-label",
+      "description": "112px square cover, navy slab label, big winning title, caption, play button; rows split by 2px gold rules.",
+      "html": "<div class=\"ds-sups\"><div class=\"ds-sup\"><span class=\"ds-art\"></span><div><h4 class=\"ds-sup-l\">Most played</h4><p class=\"ds-sup-t\">Song title</p><p class=\"ds-sup-d\">Artist, 214 plays</p></div><button class=\"ds-play\" type=\"button\" aria-label=\"Play\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></button></div><div class=\"ds-sup\"><span class=\"ds-art\"></span><div><h4 class=\"ds-sup-l\">Best newcomer</h4><p class=\"ds-sup-t\">Another song</p><p class=\"ds-sup-d\">New artist, 31 h in your first year</p></div><button class=\"ds-play\" type=\"button\" aria-label=\"Play\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></button></div></div>",
+      "css": ".ds-sups{font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif;color:var(--ink,#16130f)}.ds-sup{display:grid;grid-template-columns:112px minmax(0,1fr) auto;gap:20px;align-items:center;padding:18px 0;border-bottom:2px solid var(--gold,#f2b632)}.ds-sup:last-child{border-bottom:0}.ds-art{width:112px;height:112px;background:var(--paper-2,#f5f3ec);display:block}.ds-sup-l{margin:0;font:400 24px/1.1 \"Alfa Slab One\",Rockwell,serif;color:var(--navy-ink,#1d2a5b)}.ds-sup-t{margin:6px 0 0;font-size:19px;font-weight:800;line-height:1.2}.ds-sup-d{margin:2px 0 0;font-size:16px;color:var(--text-secondary,#4d4a45)}.ds-play{width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--navy-ink,#1d2a5b);display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 2px var(--axis,#c9c4b8);transition:background .15s,box-shadow .15s}.ds-play:hover{background:var(--gold,#f2b632);color:#16130f;box-shadow:none}.ds-play:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Portrait Grid",
+      "kind": "custom",
+      "refersTo": "portrait",
+      "description": "Unframed 4:5 artist portraits in a strict 4-column grid, captioned underneath.",
+      "html": "<ul class=\"ds-port\"><li><figure><span class=\"ds-ph\">AB</span><figcaption><span class=\"t\">Artist One</span><span class=\"c\">212 h</span></figcaption></figure></li><li><figure><span class=\"ds-ph\">CD</span><figcaption><span class=\"t\">Artist Two</span><span class=\"c\">140 h</span></figcaption></figure></li><li><figure><span class=\"ds-ph\">EF</span><figcaption><span class=\"t\">Artist Three</span><span class=\"c\">96 h</span></figcaption></figure></li><li><figure><span class=\"ds-ph\">GH</span><figcaption><span class=\"t\">Artist Four</span><span class=\"c\">71 h</span></figcaption></figure></li></ul>",
+      "css": ".ds-port{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px 18px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-port figure{margin:0}.ds-ph{display:grid;place-items:center;width:100%;aspect-ratio:4/5;background:var(--paper-2,#f5f3ec);font:400 28px \"Alfa Slab One\",Rockwell,serif;color:var(--text-muted,#6e6a63)}.ds-port li:hover .ds-ph{filter:saturate(1.15) contrast(1.03)}.ds-port figcaption{margin-top:8px;font-size:15px;line-height:1.35}.ds-port .t{display:block;font-weight:800;color:var(--ink,#16130f)}.ds-port .c{display:block;color:var(--text-secondary,#4d4a45);margin-top:2px}"
+    },
+    {
+      "name": "Cover Row with Now Playing",
+      "kind": "custom",
+      "refersTo": "cover-play-badge",
+      "description": "Big 1:1 covers that lift on hover and reveal a gold play badge; the playing one wears the gold ring and a slab Now playing line.",
+      "html": "<ul class=\"ds-covers\"><li><button class=\"ds-cover\" type=\"button\" aria-label=\"Play Song one\"><span class=\"ds-big\"></span><span class=\"ds-badge\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></span></button><span class=\"t\">Song one</span><span class=\"a\">Artist</span></li><li class=\"playing\"><button class=\"ds-cover\" type=\"button\" aria-label=\"Play Song two\"><span class=\"ds-big\"></span><span class=\"ds-badge\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></span></button><span class=\"t\">Song two</span><span class=\"a\">Artist<span class=\"ds-now\">Now playing</span></span></li></ul>",
+      "css": ".ds-covers{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,180px));gap:24px 20px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-cover{position:relative;display:block;width:100%;padding:0;border:0;background:none;cursor:pointer}.ds-big{display:block;width:100%;aspect-ratio:1;background:var(--paper-2,#f5f3ec);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s}.ds-badge{position:absolute;right:10px;bottom:10px;width:44px;height:44px;border-radius:50%;background:var(--gold,#f2b632);color:#16130f;display:grid;place-items:center;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s cubic-bezier(.2,.8,.2,1)}.ds-cover:hover .ds-big,.ds-cover:focus-visible .ds-big{transform:translateY(-4px);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16))}.ds-cover:hover .ds-badge,.ds-cover:focus-visible .ds-badge{opacity:1;transform:none}.ds-cover:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}.playing .ds-big{transform:translateY(-3px);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16)),0 0 0 4px var(--gold,#f2b632)}.playing .ds-badge{opacity:1;transform:none}.ds-covers .t{display:block;font-weight:800;margin-top:10px;color:var(--ink,#16130f)}.ds-covers .a{display:block;font-size:15px;color:var(--text-secondary,#4d4a45)}.ds-now{display:block;margin-top:6px;font:400 15px \"Alfa Slab One\",Rockwell,serif;color:var(--gold-ink,#8a5f00)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Music Yearbook",
+    "overview": "**Creative North Star: \"The Music Yearbook\"**\n\nThe site is printed like a school yearbook: bright white paper, two school colors, near-black ink. Each year is a spread. A giant navy year numeral and a strict grid of artist portraits sit on the left, a thick gold gutter divides the page, and the right column lists the year's superlatives, each one a large square cover with a gold-edged slab label and the song title set big. Album covers and artist photos carry most of the color; navy and gold are the school colors that frame them.\n\nDensity is generous and calm. Sections breathe on a 96px chapter rhythm, type is large (18px body), and nothing is boxed. Separation comes from space, from portraits sitting in their grid, and from gold rules. Depth appears only when something is picked up: a cover lifts on hover, a playing song lifts and wears a gold ring with a slab \"Now playing\" line under it. Motion steps into place and stops; nothing drifts.\n\nThe world rejects the streaming-app default: no Wrapped-style gradients, no black-and-green app look, no dashboard stat tiles, no cards or bordered boxes.",
+    "keyCharacteristics": [
+      "White yearbook paper with navy fields and headings and gold rules and labels.",
+      "Collegiate slab (Alfa Slab One) for years, headings and superlative labels; Atkinson Hyperlegible Next for everything read.",
+      "Portraits in 4:5, covers in 1:1, both square-cornered and unframed, captioned underneath.",
+      "Gold rules are the only lines: a 6px gutter, 6px section rules, 2px superlative dividers, 3px underlines for the current tab.",
+      "Lift-on-pick-up depth; flat at rest.",
+      "A navy night edition (not black) for dark mode, with gold kept unchanged."
+    ],
+    "rules": [
+      {
+        "name": "The Two School Colors Rule",
+        "body": "Navy and gold are the only chrome colors. Any other color on the page comes from album art, a photo, or a chart series that names one kind of listening.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gold Is a Line Rule",
+        "body": "Gold draws rules, underlines, rings and small fills. Text that must be read in gold uses Gold Ink, never School Gold on white.",
+        "section": "colors"
+      },
+      {
+        "name": "The Night Edition Rule",
+        "body": "Dark mode is navy paper (night-page), never black, and never paired with green. Gold does not change between editions.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shade Carries Data Rule",
+        "body": "Light-to-dark shading appears only where it encodes a quantity (heatmaps, era lines). Nowhere else are colors faded or tinted.",
+        "section": "colors"
+      },
+      {
+        "name": "The Slab Stamps, Sans Speaks Rule",
+        "body": "Slab is for years, headings, rank numbers and superlative labels. Sentences, captions and controls are always in Atkinson Hyperlegible Next.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers Line Up Rule",
+        "body": "Years, ranks, hours and table figures use tabular numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Picked Up Rule",
+        "body": "Shadows appear only when something is lifted by the visitor or floats above the page. Nothing sits in a raised panel at rest.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Box Rule",
+        "body": "No element is enclosed on all four sides by a border. Separation is space, a grid, or a single gold rule.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do open each year as a spread: slab year numeral, 4:5 portrait grid, 6px gold gutter, superlatives column.",
+      "Do let album covers and artist photos carry the color, framed by navy and gold.",
+      "Do separate with space and single gold rules (2px between rows, 3px for active underlines, 6px between major parts).",
+      "Do use the Lift shadow only for hover, the playing item, and floating layers.",
+      "Do move with cubic-bezier(.2, .8, .2, 1) at 150ms to 350ms, and drop all motion under prefers-reduced-motion.",
+      "Do keep every corner square except the round play controls and toggle.",
+      "Do use Gold Ink, not School Gold, for any gold text on white."
+    ],
+    "donts": [
+      "Don't use gradients as color (the only linear-gradient is a solid gold bar drawn under page titles).",
+      "Don't build a black-and-green app look; the night edition is navy.",
+      "Don't make dashboard stat tiles; numbers go in sentences, captions and right-aligned list values.",
+      "Don't enclose content in cards or four-sided bordered boxes.",
+      "Don't add pills, tags or chips; pickers are plain words with a gold underline.",
+      "Don't set sentences, captions or controls in the slab, or track the slab.",
+      "Don't introduce a third chrome color; extra hues are reserved for chart series that each name one kind of listening."
+    ]
+  }
+}

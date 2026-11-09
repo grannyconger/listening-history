@@ -295,6 +295,7 @@ function seqLegend(thresholds, fmt) {
 // ---------------------------------------------------------------- layout helpers
 const view = () => $('#view');
 const tile = (v, l, s = '') => `<div class="tile"><div class="v num">${v}</div><div class="l">${l}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
+const ARROW_SVG = '<svg class="arrow" viewBox="0 0 32 32" width="36" height="36" aria-hidden="true"><path d="M6 16h20M18 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>';
 const PLAY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M7 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5Z" fill="currentColor"/></svg>';
 function playBtn(type, id, label) {
   return id ? `<button class="play" type="button" data-play="${type}:${esc(id)}" aria-label="Play ${esc(label)}">${PLAY_SVG}</button>` : '';
@@ -312,6 +313,26 @@ function topArtistsList(st, n = 10) {
 }
 function topSongsList(st, n = 10) {
   return `<ol class="rank-list">${topN(st.tracks.plays, n).map((t, i) => songRow(t, fmtInt(st.tracks.plays[t]) + ' plays', i + 1)).join('')}</ol>`;
+}
+/** Yearbook portrait grid. items: [{a (artist idx) | img, name, nameHtml, cap (html)}] */
+function portraits(items, cls = '') {
+  return `<ul class="portraits ${cls}">${items.map(it => {
+    const url = it.a != null ? artistUrl(it.a) : it.img, name = it.a != null ? D.lib.artists[it.a] : it.name;
+    const long = String(name).split(/\s+/).some(w => w.length > 11);
+    return `<li class="${long ? 'long' : ''}"><figure>${url ? `<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="ph" aria-hidden="true">${initials(name)}</span>`}<figcaption><span class="t">${it.nameHtml || (it.a != null ? artistLink(it.a) : esc(name))}</span>${it.cap ? `<span class="c">${it.cap}</span>` : ''}</figcaption></figure></li>`;
+  }).join('')}</ul>`;
+}
+const artistPortraits = (list, capFn, cls) => portraits(list.map(a => ({ a, cap: capFn ? capFn(a) : '' })), cls);
+/** A superlative: big square cover, gold label, title, detail, play */
+function superlative(label, t, detail, album) {
+  const [name, ai, al, id] = D.lib.tracks[t];
+  const title = album ? esc(D.lib.albums[al][0]) : trackLink(t);
+  const ans = album ? `by ${artistLink(ai)}, most played song ${trackLink(t)}` : `${artistLink(ai)}${detail ? `, ${esc(detail)}` : ''}`;
+  return `<div class="sup">${img(album ? albumUrl(al) : trackUrl(t), name, 'sup-art')}<div class="sup-txt"><h4 class="sup-l">${esc(label)}</h4><p class="sup-t">${title}</p><p class="sup-d">${ans}</p></div>${playBtn('track', id, name + ' by ' + D.lib.artists[ai])}</div>`;
+}
+/** The first few songs of a list as big covers, so lists open with music, not rows */
+function coverRow(tracks, detailFn) {
+  return `<ul class="cover-row">${tracks.map((t, i) => { const [name, ai, , id] = D.lib.tracks[t]; return `<li>${id ? `<button class="cover-play" type="button" data-play="track:${esc(id)}" aria-label="Play ${esc(name)}">${img(trackUrl(t), name, 'big')}<span class="cover-btn" aria-hidden="true">${PLAY_SVG}</span></button>` : img(trackUrl(t), name, 'big')}<span class="t">${trackLink(t)}</span><span class="a">${artistLink(ai)}${detailFn ? `<br>${esc(detailFn(t, i))}` : ''}</span></li>`; }).join('')}</ul>`;
 }
 const embed = (type, id) => id ? `<iframe class="embed" src="https://open.spotify.com/embed/${type}/${esc(id)}?utm_source=generator" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Spotify player"></iframe>` : '';
 const storyYears = () => memo('storyYears', () => P.years.filter(y => itemStats(y).totals.music > 20 * 3600), false);
@@ -439,47 +460,54 @@ function yearFacts(Y) {
 }
 V.story = ([yr]) => {
   const all = allTime(), T = all.totals, years = storyYears();
+  if (!years.length) { view().innerHTML = `<section class="page-intro"><h1>Story</h1><p>${esc(filterNote())} There is not enough listening to tell a story.</p></section>`; return; }
   const nArtists = all.artists.secs.filter(v => v > 0).length;
+  const Y = years.includes(+yr) ? +yr : years[years.length - 1], i = years.indexOf(Y);
+  const prev = years[i - 1], next = years[i + 1];
   view().innerHTML = `
-    <section class="lede">
-      <h1>You've listened to <span class="hl">${fmtInt(T.total / 3600)} hours</span> of music since ${MONTH[dateOf(T.first).getUTCMonth()]} ${dateOf(T.first).getUTCFullYear()}.</h1>
-      <p>That's about ${fmtInt(T.total / 86400)} full days, across ${fmtInt(nArtists)} artists. Pick a year to jump to it.</p>
+    <section class="cover-page">
+      <h1>The yearbook of ${years[0]} to ${years[years.length - 1]}</h1>
+      <p>${fmtInt(T.total / 3600)} hours of music across ${fmtInt(nArtists)} artists. Your first plays go back to ${MONTH[dateOf(T.first).getUTCMonth()]} ${dateOf(T.first).getUTCFullYear()}, and every year from ${years[0]} has its own page.</p>
+      <nav class="ribbon" aria-label="Years">${years.map(y => { const f = yearFacts(y), al = f.topAlbum; return `<a href="#/story/${y}" class="${y === Y ? 'on' : ''}" ${y === Y ? 'aria-current="page"' : ''}>${img(al != null ? albumUrl(al) : null, String(y), 'cover')}<span>${y}</span></a>`; }).join('')}</nav>
+      <p class="note">${esc(filterNote())}</p>
     </section>
-    <nav class="ribbon" aria-label="Years">${years.map(y => { const f = yearFacts(y), al = f.topAlbum; return `<a href="#/story/${y}" data-jump="${y}">${img(al != null ? albumUrl(al) : null, String(y), 'cover')}<span>${y}</span></a>`; }).join('')}</nav>
-    <p class="note">${esc(filterNote())}</p>
-    ${years.map(chapter).join('')}`;
-  view().querySelectorAll('[data-jump]').forEach(a => a.onclick = e => { e.preventDefault(); history.replaceState(null, '', `#/story/${a.dataset.jump}`); jumpTo('y' + a.dataset.jump); });
-  if (yr) requestAnimationFrame(() => jumpTo('y' + yr, false));
+    ${chapter(Y)}
+    <nav class="page-turn" aria-label="Turn the page">
+      ${prev ? `<a href="#/story/${prev}" class="prev" aria-label="Previous year, ${prev}">${ARROW_SVG}<span class="y">${prev}</span></a>` : '<span></span>'}
+      ${next ? `<a href="#/story/${next}" class="next" aria-label="Next year, ${next}"><span class="y">${next}</span>${ARROW_SVG}</a>` : '<span></span>'}
+    </nav>`;
+  if (yr) requestAnimationFrame(() => { const el = $('.spread'); if (el && el.getBoundingClientRect().top > innerHeight * 0.6) jumpTo('y' + Y, false); else if (el && el.getBoundingClientRect().top < 0) jumpTo('y' + Y, false); });
 };
 function jumpTo(id, smooth = true) { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto', block: 'start' }); }
 function chapter(Y) {
   const f = yearFacts(Y), st = f.st, T = st.totals, L = D.lib;
   const ta = topN(st.artists.secs, 1)[0], tt = topN(st.tracks.plays, 1)[0];
-  const lines = [];
-  if (tt != null) lines.push(`Your most played song was ${trackLink(tt)} by ${artistLink(L.tracks[tt][1])}, ${fmtInt(st.tracks.plays[tt])} times.`);
-  if (f.run.n >= 5) lines.push(`You played ${trackLink(f.run.id)} ${f.run.n} times in a row.`);
-  return `<section class="chapter" id="y${Y}" aria-labelledby="h${Y}">
-    <div class="year" aria-hidden="true">${Y}</div>
-    <div class="chapter-body">
-      <h2 id="h${Y}">${ta != null ? `${artistLink(ta)} was your top artist in ${Y}` : `${Y}`}</h2>
-      <p class="chapter-lede">${lines.join(' ')}</p>
-      <div class="chapter-grid">
-        <div>
-          <h3>Top songs</h3>
-          ${topSongsList(st, 5)}
-        </div>
-        <div>
-          <h3>Top artists</h3>
-          ${topArtistsList(st, 5)}
-        </div>
-      </div>
-      <dl class="facts">
-        <div><dt>Listening</dt><dd>${fmtInt(T.total / 3600)} hours</dd></div>
-        <div><dt>Artists you heard for the first time</dt><dd>${fmtInt(f.newArtists.length)}</dd></div>
-        ${f.bestDay ? `<div><dt>Biggest day</dt><dd>${fmtDay(f.bestDay[0]).replace(/, \d+$/, '')}, ${fmtH(f.bestDay[1])}</dd></div>` : ''}
-        ${f.topAlbum != null ? `<div><dt>Top album</dt><dd>${esc(L.albums[f.topAlbum][0])}</dd></div>` : ''}
-      </dl>
+  const newcomer = f.newArtists[0];
+  const newSong = newcomer != null ? topN(st.tracks.plays, 1, t => L.tracks[t][1] === newcomer)[0] : null;
+  const albumSong = f.topAlbum != null ? topN(st.tracks.plays, 1, t => L.tracks[t][2] === f.topAlbum)[0] : null;
+  const sups = [];
+  if (tt != null) sups.push(superlative('Most played', tt, `${fmtInt(st.tracks.plays[tt])} plays`));
+  if (f.run.n >= 5 && f.run.id !== tt) sups.push(superlative('Most on repeat', f.run.id, `${f.run.n} times in a row`));
+  if (albumSong != null) sups.push(superlative('Album of the year', albumSong, '', true));
+  if (newSong != null && newSong !== tt) sups.push(superlative('Best newcomer', newSong, `${fmtH(st.artists.secs[newcomer])} in your first year`));
+  const songs = topN(st.tracks.plays, 10);
+  return `<section class="spread" id="y${Y}" aria-labelledby="h${Y}">
+    <div class="spread-head">
+      <div class="year" aria-hidden="true">${Y}</div>
+      <h2 id="h${Y}">${ta != null ? `${artistLink(ta)} was your top artist` : `${Y}`}</h2>
+      <p class="spread-lede">${fmtInt(T.total / 3600)} hours of music, ${fmtInt(f.newArtists.length)} artists heard for the first time${f.bestDay ? `, and your biggest day was ${fmtDay(f.bestDay[0]).replace(/, \d+$/, '')} with ${fmtH(f.bestDay[1])}` : ''}.</p>
     </div>
+    <div class="spread-port">${artistPortraits(topN(st.artists.secs, 8), a => fmtH(st.artists.secs[a]))}</div>
+    <div class="gutter" aria-hidden="true"></div>
+    <div class="spread-r">
+      <h3 class="slab">Superlatives</h3>
+      ${sups.join('')}
+    </div>
+    <details class="spread-songs">
+      <summary><span class="slab">Top 10 songs of ${Y}</span><span class="open-lbl">Show the list</span></summary>
+      ${mixTools(songs, `My top songs of ${Y}`, `My 10 most played songs of ${Y}, from my listening history.`)}
+      <ol class="rank-list two-col">${songs.map((t, i) => songRow(t, fmtInt(st.tracks.plays[t]) + ' plays', i + 1)).join('')}</ol>
+    </details>
   </section>`;
 }
 
@@ -514,9 +542,10 @@ V.rediscover = () => {
       <h2>Forgotten favorites</h2>
       <p class="sub">Songs you played at least 15 times but not in the last year. Pick the year you loved them most.</p>
       ${eras.html}
-      ${forgotten.length ? `<ol class="rank-list">${forgotten.slice(0, RD.shown).map(t => songRow(t, `${fmtInt(S.plays[t])} plays, last in ${monthName(S.last[t])}`)).join('')}</ol>
-        ${forgotten.length > RD.shown ? `<button class="btn ghost more" id="fmore">Show ${Math.min(20, forgotten.length - RD.shown)} more</button>` : ''}
-        ${mixTools(forgotten.slice(0, 50), `Forgotten favorites${RD.era === 'all' ? '' : ' from ' + RD.era}`, 'Songs I loved and stopped playing, from my listening history.')}` : '<p class="muted">No forgotten favorites for this year.</p>'}
+      ${forgotten.length ? `${mixTools(forgotten.slice(0, 50), `Forgotten favorites${RD.era === 'all' ? '' : ' from ' + RD.era}`, 'Songs I loved and stopped playing, from my listening history.')}
+        ${coverRow(forgotten.slice(0, 4), t => `${fmtInt(S.plays[t])} plays, last in ${monthName(S.last[t])}`)}
+        <ol class="rank-list">${forgotten.slice(4, RD.shown).map(t => songRow(t, `${fmtInt(S.plays[t])} plays, last in ${monthName(S.last[t])}`)).join('')}</ol>
+        ${forgotten.length > RD.shown ? `<button class="btn ghost more" id="fmore">Show ${Math.min(20, forgotten.length - RD.shown)} more</button>` : ''}` : '<p class="muted">No forgotten favorites for this year.</p>'}
     </section>
     <section class="block" id="week"></section>
     <section class="block">
@@ -604,9 +633,10 @@ V.binge = ([kS]) => {
     <section class="block">
       <h2>${esc(seasonLabel(cur.k))}</h2>
       <p class="sub">${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])} was your biggest binge, ${fmtInt(lead.n)} plays. ${lead.share >= 0.5 ? `That's ${pct(lead.share)} of every play it has ever had.` : ''}${lead.bestN >= 3 ? ` On ${fmtDay(lead.bestDay)} alone you played it ${lead.bestN} times.` : ''}</p>
-      <ol class="rank-list">${list.map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays, ${pct(s.share)} of all its plays`, i + 1)).join('')}</ol>
-      ${cur.songs.length > BG.shown ? `<button class="btn ghost more" id="bmore">Show ${Math.min(10, cur.songs.length - BG.shown)} more</button>` : ''}
       ${mixTools(cur.songs.slice(0, 30).map(s => s.t), `Binge: ${seasonLabel(cur.k)}`, `The songs I could not stop playing in ${seasonLabel(cur.k)}.`)}
+      ${coverRow(list.slice(0, 4).map(s => s.t), (t, i) => `${fmtInt(list[i].n)} plays, ${pct(list[i].share)} of all its plays`)}
+      <ol class="rank-list" start="5">${list.slice(4).map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays, ${pct(s.share)} of all its plays`, i + 5)).join('')}</ol>
+      ${cur.songs.length > BG.shown ? `<button class="btn ghost more" id="bmore">Show ${Math.min(10, cur.songs.length - BG.shown)} more</button>` : ''}
     </section>
     <section class="block">
       <h2>Every season</h2>
@@ -691,9 +721,9 @@ V.artist = ([aiS]) => {
   const rank = 1 + Array.prototype.filter.call(st.artists.secs, v => v > secs).length;
   const peak = [...monS].sort((a, b) => b[1] - a[1])[0];
   const topTracks = [...trP].sort((a, b) => b[1] - a[1]);
-  view().innerHTML = `<section class="hero">${img(artistUrl(ai), L.artists[ai], 'lg round')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
+  view().innerHTML = `<section class="hero person">${img(artistUrl(ai), L.artists[ai], 'lg portrait')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
       <p>Your number ${rank} artist. You've listened for ${fmtH(secs)} since ${monthName(first)}, most of all in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.</p>${artistStart(ai)}</div></section>
-    <div class="tiles">${tile(fmtInt(plays), 'plays')}${tile(String(topTracks.length), 'different songs')}${tile(pct(done / started), 'played to the end')}${tile(monthName(last).replace(/^(\w{3})\w*/, '$1'), 'last played')}</div>
+    <p class="lead-text facts-line">${fmtInt(plays)} plays across ${fmtInt(topTracks.length)} different songs. You played ${pct(done / started)} of them to the end, and last played this artist in ${monthName(last)}.</p>
     <section class="block"><h2>Listening over time</h2><p class="sub">Hours per month</p><div class="chart" id="c-am"></div></section>
     <div class="grid g2">
       <section class="block"><h2>Top songs</h2><ol class="rank-list">${topTracks.slice(0, 15).map(([t, n], i) => songRow(t, fmtInt(n) + ' plays', i + 1)).join('')}</ol></section>
@@ -723,7 +753,7 @@ V.track = ([tiS]) => {
       <p>${artistLink(ai)}, from ${esc(L.albums[al][0])}</p>
       <p>You first played it in ${monthName(P.t[first])} and have played it ${fmtInt(plays)} times since. It peaked in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.${lifeNote(ti)}</p>
       <button class="btn" type="button" data-play="track:${esc(id)}">${PLAY_SVG} Play</button></div></section>
-    <div class="tiles">${tile(fmtInt(plays), 'plays')}${tile(best.n + ' times', 'most in a row')}${tile(pct(done / started), 'played to the end')}${tile(monthName(P.t[last]).replace(/^(\w{3})\w*/, '$1'), 'last played')}</div>
+    <p class="lead-text facts-line">You played it ${best.n} times in a row at most, played it to the end ${pct(done / started)} of the time, and last played it in ${monthName(P.t[last])}.</p>
     ${trackStartBlock(ti)}
     ${goesWithBlock(ti)}
     <section class="block"><h2>Plays per month</h2><div class="chart" id="c-tm"></div></section>
@@ -804,7 +834,7 @@ function sessionsBlock() {
   const runs = []; let cur = null;
   for (let p = 0; p < P.n; p++) { if (!sc[p] || P.k[p] !== 0) continue; if (cur && cur.id === P.i[p]) cur.n++; else { if (cur && cur.n >= 5) runs.push(cur); cur = { id: P.i[p], n: 1, t: P.t[p] }; } }
   if (cur && cur.n >= 5) runs.push(cur); runs.sort((a, b) => b.n - a.n);
-  $('#sess').innerHTML = `<div class="tiles">${tile(fmtInt(ss.length), 'sessions')}${tile(Math.round(med / 60) + ' min', 'typical session')}${tile(longest[0] ? fmtH(longest[0].secs) : '', 'longest session')}</div>
+  $('#sess').innerHTML = `<p class="lead-text">${fmtInt(ss.length)} sessions. A typical one lasts ${Math.round(med / 60)} minutes${longest[0] ? `, and the longest ran for ${fmtH(longest[0].secs)}` : ''}.</p>
     <div class="grid g2"><div><h3 class="sub-head">How long sessions last</h3><div class="chart" id="c-sl"></div></div>
     <div><h3 class="sub-head">Longest sessions</h3><ol class="rank-list plain">${longest.map(s => `<li><div class="who"><div><div class="t">${fmtDate(s.start)}</div><div class="a">Mostly ${esc(label([...s.art].sort((a, b) => b[1] - a[1])[0][0]))}</div></div></div><span class="v">${fmtH(s.secs)}</span></li>`).join('')}</ol></div></div>
     <h3 class="sub-head">Songs on repeat</h3><ol class="rank-list">${runs.slice(0, 8).map(r => songRow(r.id, `${r.n} in a row, ${monthName(r.t)}`)).join('')}</ol>`;
@@ -1094,7 +1124,7 @@ function youMightLike() {
 }
 const spotifySearch = name => `https://open.spotify.com/search/${encodeURIComponent(name)}`;
 function newArtistList(items) {
-  return `<ol class="rank-list">${items.map(o => `<li>${img(D.sim.photos && D.sim.photos[o.mb], o.name, 'sm round')}<div class="who"><div><div class="t"><a href="${esc(spotifySearch(o.name))}" target="_blank" rel="noopener">${esc(o.name)}</a></div><div class="a">Similar to ${listText(o.from.slice(0, 3).map(a => artistLink(a)))}</div></div></div><a class="v" href="${esc(spotifySearch(o.name))}" target="_blank" rel="noopener">Find on Spotify</a></li>`).join('')}</ol>`;
+  return portraits(items.map(o => ({ img: D.sim.photos && D.sim.photos[o.mb], name: o.name, nameHtml: `<a href="${esc(spotifySearch(o.name))}" target="_blank" rel="noopener">${esc(o.name)}</a>`, cap: `Similar to ${listText(o.from.slice(0, 3).map(a => artistLink(a)))}` })));
 }
 
 // ---------------- playlists: save to Spotify or copy links
@@ -1204,8 +1234,9 @@ function goesWithBlock(ti) {
   const gw = goesWith(ti, 10); if (!gw.length) return '';
   const name = D.lib.tracks[ti][0];
   return `<section class="block"><h2>Goes with</h2><p class="sub">Songs you often played within a few songs of this one. Rare songs that keep showing up next to it rank higher than your all-time hits.</p>
-    <ol class="rank-list">${gw.map((g, i) => songRow(g.t, `Together on ${g.days} days, ${yearsText(g.y0, g.y1)}`, i + 1)).join('')}</ol>
-    ${mixTools([ti].concat(gw.map(g => g.t)), `Goes with ${name}`, `Songs I played next to ${name}, from my listening history.`)}</section>`;
+    ${mixTools([ti].concat(gw.map(g => g.t)), `Goes with ${name}`, `Songs I played next to ${name}, from my listening history.`)}
+    ${coverRow(gw.slice(0, 4).map(g => g.t), (t, i) => `Together on ${gw[i].days} days`)}
+    <ol class="rank-list">${gw.slice(4).map((g, i) => songRow(g.t, `Together on ${g.days} days, ${yearsText(g.y0, g.y1)}`, i + 5)).join('')}</ol></section>`;
 }
 function artistStart(ai) {
   const j = firstPlayIdx()[ai]; if (j < 0) return '';
@@ -1227,7 +1258,7 @@ function artistLinksBlock(ai) {
   }
   if (!near.length && !simHtml) return '';
   return `<div class="grid g2">
-    ${near.length ? `<section class="block"><h2>Played next to</h2><p class="sub">Artists you often played right before or after ${esc(D.lib.artists[ai])}.</p>${rankList(near.map(([b, c]) => ({ url: artistUrl(b), title: D.lib.artists[b], titleHtml: artistLink(b), value: `${fmtInt(c)} sessions`, round: true })))}</section>` : '<div></div>'}
+    ${near.length ? `<section class="block"><h2>Played next to</h2><p class="sub">Artists you often played right before or after ${esc(D.lib.artists[ai])}.</p>${portraits(near.slice(0, 6).map(([b, c]) => ({ a: b, cap: `${fmtInt(c)} sessions together` })), 'three')}</section>` : '<div></div>'}
     ${simHtml}</div>`;
 }
 
@@ -1245,16 +1276,17 @@ V.eras = ([aS]) => {
     <section class="block era-detail" aria-labelledby="eraH">
       <h2 id="eraH">${esc(eraName(cur))}</h2>
       <p class="sub">${esc(eraRange(cur))}, ${cur.months} ${cur.months === 1 ? 'month' : 'months'} and ${fmtInt(cur.secs / 3600)} hours of music.${lead ? ` The song that defined it was ${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])}, played ${fmtInt(lead.n)} times${lead.share >= 0.5 ? `, ${pct(lead.share)} of all its plays ever` : ''}.` : ''}</p>
-      <div class="chapter-grid">
+      <div class="era-grid">
         <div>
           <h3>Songs that defined it</h3>
           <p class="sub">Played often in this era, and much less at any other time.</p>
-          <ol class="rank-list">${cur.songs.slice(0, 12).map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays`, i + 1)).join('')}</ol>
           ${mixTools(cur.songs.slice(0, 30).map(s => s.t), `${eraName(cur)} (${yearsText(Math.floor(cur.a / 12), Math.floor(cur.b / 12))})`, `The songs that defined ${eraRange(cur)} in my listening history.`)}
+          ${coverRow(cur.songs.slice(0, 3).map(s => s.t), (t, i) => `${fmtInt(cur.songs[i].n)} plays`)}
+          <ol class="rank-list">${cur.songs.slice(3, 12).map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays`, i + 4)).join('')}</ol>
         </div>
         <div>
           <h3>Top artists</h3>
-          ${rankList(cur.artists.slice(0, 5).map(([a, s]) => ({ url: artistUrl(a), title: D.lib.artists[a], titleHtml: artistLink(a), value: fmtH(s), round: true })))}
+          ${portraits(cur.artists.slice(0, 6).map(([a, s]) => ({ a, cap: fmtH(s) })), 'three')}
           ${cur.newFavs.length ? `<h3 class="sub-head">New artists you went on to love</h3><p class="muted">${listText(cur.newFavs.slice(0, 6).map(artistLink))}</p>` : ''}
         </div>
       </div>
@@ -1278,9 +1310,8 @@ V.eras = ([aS]) => {
 function lifeBlock() {
   const L = lifecycles(), sh = EZ.shown;
   const col = (key, title, sub, rows, detail, mixName) => `<div><h3 class="sub-head">${title}</h3><p class="sub">${sub}</p>
-    ${rows.length ? `<ol class="rank-list">${rows.slice(0, sh[key]).map(r => songRow(r.t, detail(r))).join('')}</ol>
-    ${rows.length > sh[key] ? `<button class="btn ghost more" data-life="${key}">Show more</button>` : ''}
-    ${mixTools(rows.slice(0, 40).map(r => r.t), mixName, '')}` : '<p class="muted">None with the current filters.</p>'}</div>`;
+    ${rows.length ? `${mixTools(rows.slice(0, 40).map(r => r.t), mixName, '')}<ol class="rank-list">${rows.slice(0, sh[key]).map(r => songRow(r.t, detail(r))).join('')}</ol>
+    ${rows.length > sh[key] ? `<button class="btn ghost more" data-life="${key}">Show more</button>` : ''}` : '<p class="muted">None with the current filters.</p>'}</div>`;
   $('#life').innerHTML = `<h2>Lasting favorites and short obsessions</h2>
     <p class="sub">Some songs stay with you for years. Others take over for a few weeks and then disappear.</p>
     <div class="grid g2">
@@ -1332,7 +1363,7 @@ function monthBlock() {
 }
 
 // ---------------- Connections page
-const CX = { from: null, to: null, found: 15, like: 12 };
+const CX = { from: null, to: null, found: 8, like: 8 };
 V.connections = () => {
   const st = allTime(), G = gatewayData();
   const names = topN(st.artists.secs, 3000);
@@ -1362,15 +1393,15 @@ V.connections = () => {
     <section class="block" id="c-found">
       <h2>How you found your favorite artists</h2>
       <p class="sub">The first song you played by each artist you went on to hear for 10 hours or more, and what you were playing right before.</p>
-      <ol class="rank-list found">${G.rows.slice(0, CX.found).map(r => { const t = P.i[r.p], [name, , , id] = D.lib.tracks[t]; return `<li>${img(artistUrl(r.a), D.lib.artists[r.a], 'sm round')}<div class="who"><div><div class="t">${artistLink(r.a)} <span class="muted">${fmtH(st.artists.secs[r.a])}</span></div><div class="a">First song: ${trackLink(t)}, ${fmtDate(P.t[r.p])}. ${r.ctx.html}</div></div></div>${playBtn('track', id, name)}</li>`; }).join('')}</ol>
+      ${portraits(G.rows.slice(0, CX.found).map(r => { const t = P.i[r.p], id = D.lib.tracks[t][3]; return { a: r.a, cap: `First song ${trackLink(t)}, ${MON[dateOf(P.t[r.p]).getUTCMonth()]} ${yearOf(P.t[r.p])}. ${r.ctx.html} ${playBtn('track', id, D.lib.tracks[t][0])}` }; }), 'found')}
       ${G.rows.length > CX.found ? `<button class="btn ghost more" id="foundMore">Show more</button>` : ''}
       ${G.gateways.length ? `<h3 class="sub-head">Artists that led you to others</h3><p class="sub">You were playing these artists right before you first heard several later favorites.</p>
-        ${rankList(G.gateways.slice(0, 6).map(([g, l]) => ({ url: artistUrl(g), title: D.lib.artists[g], titleHtml: artistLink(g), subHtml: `Led to ${listText(l.slice(0, 4).map(artistLink))}${l.length > 4 ? ` and ${l.length - 4} more` : ''}`, value: `${l.length} artists`, round: true })))}` : ''}
+        ${portraits(G.gateways.slice(0, 4).map(([g, l]) => ({ a: g, cap: `Led to ${listText(l.slice(0, 4).map(artistLink))}${l.length > 4 ? ` and ${l.length - 4} more` : ''}` })))}` : ''}
     </section>
     <section class="block" id="c-bridge">
       <h2>Bridge artists</h2>
       <p class="sub">Among your top 150 artists, these sit between groups you rarely play together. They show up most often on the shortest path from one artist to another.</p>
-      ${bridges.length ? rankList(bridges.map(({ a, pair }) => ({ url: artistUrl(a), title: D.lib.artists[a], titleHtml: artistLink(a), subHtml: pair ? `Links ${artistLink(pair[0])} and ${artistLink(pair[1])}` : '', value: fmtH(st.artists.secs[a]), round: true }))) : '<p class="muted">Not enough listening to find bridges.</p>'}
+      ${bridges.length ? portraits(bridges.map(({ a, pair }) => ({ a, cap: pair ? `Links ${artistLink(pair[0])} and ${artistLink(pair[1])}` : '' }))) : '<p class="muted">Not enough listening to find bridges.</p>'}
     </section>
     ${like.length ? `<section class="block" id="c-new">
       <h2>You might like</h2>
@@ -1387,8 +1418,8 @@ V.connections = () => {
   };
   $('#pathForm').onsubmit = e => { e.preventDefault(); run(); };
   $('#pRand').onclick = () => { const pool = names.slice(0, 120); const f = pool[Math.floor(Math.random() * pool.length)]; let t = f; while (t === f) t = pool[Math.floor(Math.random() * pool.length)]; $('#pFrom').value = D.lib.artists[f]; $('#pTo').value = D.lib.artists[t]; run(); };
-  const fm = $('#foundMore'); if (fm) fm.onclick = () => { CX.found += 15; V.connections(); jumpTo('c-found', false); };
-  const lm = $('#likeMore'); if (lm) lm.onclick = () => { CX.like += 12; V.connections(); jumpTo('c-new', false); };
+  const fm = $('#foundMore'); if (fm) fm.onclick = () => { CX.found += 8; V.connections(); jumpTo('c-found', false); };
+  const lm = $('#likeMore'); if (lm) lm.onclick = () => { CX.like += 8; V.connections(); jumpTo('c-new', false); };
   pathBlock(CX.from, CX.to);
 };
 function pathBlock(f, t) {
@@ -1399,8 +1430,8 @@ function pathBlock(f, t) {
   const songs = pathSongs(path), A = D.lib.artists;
   out.innerHTML = `<p class="path">${path.map(a => artistLink(a)).join('<span class="arrow" aria-hidden="true"> → </span><span class="sr-only"> then </span>')}</p>
     <p class="sub">${path.length - 2 === 0 ? 'You played these two back to back.' : `${path.length - 2} ${path.length - 2 === 1 ? 'artist' : 'artists'} in between.`} Each pair of songs is one you played back to back.</p>
-    <ol class="rank-list">${songs.map((s, i) => songRow(s, '', i + 1)).join('')}</ol>
-    ${mixTools(songs, `From ${A[f]} to ${A[t]}`, `A path from ${A[f]} to ${A[t]} through my listening history.`)}`;
+    ${mixTools(songs, `From ${A[f]} to ${A[t]}`, `A path from ${A[f]} to ${A[t]} through my listening history.`)}
+    <ol class="rank-list">${songs.map((s, i) => songRow(s, '', i + 1)).join('')}</ol>`;
 }
 
 // ---------------- What's hidden
@@ -1425,8 +1456,9 @@ function route() {
   const args = parts.slice(1);
   const fn = V[name] || V.notfound;
   const section = { artist: 'explore', track: 'explore', hidden: 'story' }[name] || name;
-  document.querySelectorAll('#nav a').forEach(a => { const on = a.dataset.r === section; a.classList.toggle('active', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  try { fn(args); } catch (e) { console.error(e); view().innerHTML = `<section class="page-intro"><h1>This page could not be shown</h1><p>Reload the page to try again.</p><pre class="muted">${esc(e.stack || e)}</pre></section>`; }
+  const navEl = $('#nav');
+  document.querySelectorAll('#nav a').forEach(a => { const on = a.dataset.r === section; if (on && navEl.scrollWidth > navEl.clientWidth) navEl.scrollLeft = a.offsetLeft - 16; a.classList.toggle('active', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  try { fn(args); markPlaying(); } catch (e) { console.error(e); view().innerHTML = `<section class="page-intro"><h1>This page could not be shown</h1><p>Reload the page to try again.</p><pre class="muted">${esc(e.stack || e)}</pre></section>`; }
   const navName = (NAV.find(n => n[0] === section) || [0, ''])[1];
   document.title = `${navName ? navName + ', ' : ''}Listening History`;
   if (!((name === 'story' || name === 'eras') && args[0])) window.scrollTo(0, 0);
@@ -1439,12 +1471,25 @@ function invalidate() { memoStore.clear(); }
 // If the API hasn't loaded (blocked or slow), falls back to the plain embed, which needs a second click.
 const SP = { api: null, ctl: null, pending: null, wantPlay: false, plain: false };
 window.onSpotifyIframeApiReady = api => { SP.api = api; if (SP.pending) { const s = SP.pending; SP.pending = null; play(s); } };
+/** Mark whatever is playing: its cover lifts and a gold "Now playing" line appears */
+function markPlaying() {
+  view().querySelectorAll('.playing').forEach(el => el.classList.remove('playing'));
+  view().querySelectorAll('.now-playing').forEach(el => el.remove());
+  if (!SP.current) return;
+  view().querySelectorAll(`[data-play="${CSS.escape(SP.current)}"]`).forEach(b => {
+    const host = b.closest('.sup, .cover-row li, .portraits li, .rank-list li, .hero'); if (!host) return;
+    host.classList.add('playing');
+    const tag = document.createElement('span'); tag.className = 'now-playing'; tag.textContent = 'Now playing';
+    (host.querySelector('.sup-txt, .who > div, figcaption, .meta') || host).appendChild(tag);
+  });
+}
 function startPlaying() { // the player fires 'ready' each time a song finishes loading
   if (!SP.wantPlay || !SP.ctl) return;
   SP.wantPlay = false; SP.ctl.play();
 }
 function play(spec) {
   const [type, id] = spec.split(':'); if (!id) return;
+  SP.current = spec; markPlaying();
   const dock = $('#player');
   dock.hidden = false; document.body.classList.add('has-player');
   const uri = `spotify:${type}:${id}`;
@@ -1470,7 +1515,7 @@ function play(spec) {
   $('#playerMount').innerHTML = `<iframe title="Spotify player" src="https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
 }
 function closePlayer() {
-  SP.wantPlay = false; SP.pending = null;
+  SP.wantPlay = false; SP.pending = null; SP.current = null; markPlaying();
   if (SP.ctl) SP.ctl.pause(); else $('#playerMount').innerHTML = '';
   $('#player').hidden = true; document.body.classList.remove('has-player');
 }
