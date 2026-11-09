@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-08T21:36:04-05:00",
+  "generatedAt": "2026-11-08T23:10:00-05:00",
   "title": "Design System: Listening History",
   "extensions": {
     "colorMeta": {
@@ -237,6 +237,46 @@
         ],
         "edition": "day",
         "cssVar": "--series-3"
+      },
+      "spine": {
+        "role": "primary",
+        "displayName": "Spine",
+        "canonical": "#1d2a5b",
+        "oklch": "oklch(30.4% 0.089 269.3)",
+        "tonalRamp": [
+          "#060a1a",
+          "#192343",
+          "#2f3e71",
+          "#4d5e94",
+          "#6d80b8",
+          "#8ea3de",
+          "#b2c7ff",
+          "#deeeff"
+        ],
+        "edition": "day",
+        "cssVar": "--spine",
+        "purpose": "Era volumes on the Eras shelf and every other sub-era block on the Binges timeline. Same value as Yearbook Navy by day; split out so the night edition can keep spines dark.",
+        "inFrontmatter": false
+      },
+      "spine-2": {
+        "role": "primary",
+        "displayName": "Spine 2",
+        "canonical": "#26357a",
+        "oklch": "oklch(35.9% 0.119 270.1)",
+        "tonalRamp": [
+          "#05003c",
+          "#121a5d",
+          "#2b3b80",
+          "#485ba4",
+          "#677dc9",
+          "#88a1f0",
+          "#abc5ff",
+          "#d0ebff"
+        ],
+        "edition": "day",
+        "cssVar": "--spine-2",
+        "purpose": "Alternate sub-era blocks on the Binges timeline so neighbours read apart.",
+        "inFrontmatter": false
       },
       "heat-0": {
         "role": "neutral",
@@ -627,6 +667,46 @@
         "edition": "night",
         "cssVar": "--series-3"
       },
+      "night-spine": {
+        "role": "primary",
+        "displayName": "Night Spine",
+        "canonical": "#26346f",
+        "oklch": "oklch(34.8% 0.103 270.2)",
+        "tonalRamp": [
+          "#040035",
+          "#131d56",
+          "#2d3c78",
+          "#4b5d9c",
+          "#6a7fc0",
+          "#8ca2e6",
+          "#afc6ff",
+          "#d4ecff"
+        ],
+        "edition": "night",
+        "cssVar": "--spine",
+        "purpose": "Spine on night pages, a step lighter than Night Page so volumes stay visible.",
+        "inFrontmatter": false
+      },
+      "night-spine-2": {
+        "role": "primary",
+        "displayName": "Night Spine 2",
+        "canonical": "#33438a",
+        "oklch": "oklch(41.0% 0.119 270.8)",
+        "tonalRamp": [
+          "#05003c",
+          "#131a5d",
+          "#2b3a80",
+          "#485ba4",
+          "#687dca",
+          "#89a0f0",
+          "#acc5ff",
+          "#d0ebff"
+        ],
+        "edition": "night",
+        "cssVar": "--spine-2",
+        "purpose": "Alternate sub-era blocks on night pages.",
+        "inFrontmatter": false
+      },
       "night-heat-0": {
         "role": "neutral",
         "displayName": "Night Heat 0",
@@ -766,7 +846,7 @@
       },
       "slab-label": {
         "displayName": "Slab Label",
-        "purpose": "Superlative names, column heads, year labels."
+        "purpose": "Superlative names, column heads, year labels; spine titles on the Eras shelf (20px, 17px for long names) and sub-era names under the Binges timeline (16px) use the same slab."
       },
       "subhead": {
         "displayName": "Subhead",
@@ -801,7 +881,7 @@
       {
         "name": "lift",
         "value": "0 2px 6px rgba(22, 19, 15, .08), 0 18px 40px rgba(22, 19, 15, .16)",
-        "purpose": "Picked-up covers and floating layers (search results, filters, tooltip, toast, player)."
+        "purpose": "Picked-up covers, hovered and pulled-out shelf spines, and floating layers (search results, the filters window, tooltip, toast, player)."
       },
       {
         "name": "lift-night",
@@ -823,7 +903,7 @@
       {
         "name": "ease-step",
         "value": "cubic-bezier(.2, .8, .2, 1)",
-        "purpose": "All lifts, badge reveals and the player rise."
+        "purpose": "All lifts, spine pulls, badge reveals, the filters window opening and the player rise."
       },
       {
         "name": "duration-control",
@@ -834,6 +914,11 @@
         "name": "duration-lift",
         "value": "200ms",
         "purpose": "Cover and portrait lift on hover, playing lift."
+      },
+      {
+        "name": "duration-pickup",
+        "value": "220ms",
+        "purpose": "Shelf spine hover lift and pull-out, filters window opening (rises 12px and fades in)."
       },
       {
         "name": "duration-rise",
@@ -899,12 +984,12 @@
       "css": ".ds-play{width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--navy-ink,#1d2a5b);display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 2px var(--axis,#c9c4b8);transition:background .15s,box-shadow .15s,color .15s}.ds-play svg{margin-left:2px}.ds-play:hover{background:var(--gold,#f2b632);color:#16130f;box-shadow:none}.ds-play:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
     },
     {
-      "name": "Year Picker",
+      "name": "Year Picker in the Sticky Year Bar",
       "kind": "chip",
       "refersTo": "picker-item",
-      "description": "Plain year words, current year navy 800 with a 3px gold underline. Not pills.",
-      "html": "<nav class=\"ds-picker\" aria-label=\"Year\"><button type=\"button\">All years</button><button type=\"button\">2019</button><button type=\"button\" class=\"on\">2020</button><button type=\"button\">2021</button></nav>",
-      "css": ".ds-picker{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-picker button{font:inherit;font-size:17px;background:none;border:0;border-bottom:3px solid transparent;padding:4px 0;color:var(--text-secondary,#4d4a45);cursor:pointer;font-variant-numeric:tabular-nums}.ds-picker button:hover{color:var(--ink,#16130f)}.ds-picker .on{color:var(--navy-ink,#1d2a5b);font-weight:800;border-bottom-color:var(--gold,#f2b632)}.ds-picker button:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+      "description": "Plain year words, current year navy 800 with a 3px gold underline (not pills). On Patterns the picker sits in a sticky bar under the masthead on the page ground with a 3px gold line below; under 900px the bar shows a Year shown select instead.",
+      "html": "<div class=\"ds-yearbar\"><span class=\"ds-yearbar-l\">Year shown</span><nav class=\"ds-picker\" aria-label=\"Year\"><button type=\"button\">All years</button><button type=\"button\">2019</button><button type=\"button\" class=\"on\">2020</button><button type=\"button\">2021</button></nav></div>",
+      "css": ".ds-yearbar{position:sticky;top:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px 24px;padding:12px 24px 0;background:var(--page,#fff);box-shadow:0 6px 0 var(--page,#fff),0 9px 0 var(--gold,#f2b632);font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-yearbar-l{white-space:nowrap;font-weight:800;font-size:15px;color:var(--text-secondary,#4d4a45);margin-bottom:8px}.ds-picker{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0 0 8px}.ds-picker button{font:inherit;font-size:17px;background:none;border:0;border-bottom:3px solid transparent;padding:4px 0;color:var(--text-secondary,#4d4a45);cursor:pointer;font-variant-numeric:tabular-nums}.ds-picker button:hover{color:var(--ink,#16130f)}.ds-picker .on{color:var(--navy-ink,#1d2a5b);font-weight:800;border-bottom-color:var(--gold,#f2b632)}.ds-picker button:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
     },
     {
       "name": "Underline Input",
@@ -937,6 +1022,38 @@
       "description": "Big 1:1 covers that lift on hover and reveal a gold play badge; the playing one wears the gold ring and a slab Now playing line.",
       "html": "<ul class=\"ds-covers\"><li><button class=\"ds-cover\" type=\"button\" aria-label=\"Play Song one\"><span class=\"ds-big\"></span><span class=\"ds-badge\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></span></button><span class=\"t\">Song one</span><span class=\"a\">Artist</span></li><li class=\"playing\"><button class=\"ds-cover\" type=\"button\" aria-label=\"Play Song two\"><span class=\"ds-big\"></span><span class=\"ds-badge\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M8 5.5v13l11-6.5z\" fill=\"currentColor\"/></svg></span></button><span class=\"t\">Song two</span><span class=\"a\">Artist<span class=\"ds-now\">Now playing</span></span></li></ul>",
       "css": ".ds-covers{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,180px));gap:24px 20px;font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-cover{position:relative;display:block;width:100%;padding:0;border:0;background:none;cursor:pointer}.ds-big{display:block;width:100%;aspect-ratio:1;background:var(--paper-2,#f5f3ec);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s}.ds-badge{position:absolute;right:10px;bottom:10px;width:44px;height:44px;border-radius:50%;background:var(--gold,#f2b632);color:#16130f;display:grid;place-items:center;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s cubic-bezier(.2,.8,.2,1)}.ds-cover:hover .ds-big,.ds-cover:focus-visible .ds-big{transform:translateY(-4px);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16))}.ds-cover:hover .ds-badge,.ds-cover:focus-visible .ds-badge{opacity:1;transform:none}.ds-cover:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}.playing .ds-big{transform:translateY(-3px);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16)),0 0 0 4px var(--gold,#f2b632)}.playing .ds-badge{opacity:1;transform:none}.ds-covers .t{display:block;font-weight:800;margin-top:10px;color:var(--ink,#16130f)}.ds-covers .a{display:block;font-size:15px;color:var(--text-secondary,#4d4a45)}.ds-now{display:block;margin-top:6px;font:400 15px \"Alfa Slab One\",Rockwell,serif;color:var(--gold-ink,#8a5f00)}"
+    },
+    {
+      "name": "Back Link",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Opens song and artist pages: a drawn Gold Ink arrow and Back in navy 800, returning to the previous screen; with no history it reads All songs and artists. Hover nudges the arrow 4px left.",
+      "html": "<a class=\"ds-back\" href=\"#\"><svg viewBox=\"0 0 32 32\" width=\"26\" height=\"26\" aria-hidden=\"true\"><path d=\"M26 16H6M14 8l-8 8 8 8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.5\" stroke-linecap=\"square\"/></svg>Back</a>",
+      "css": ".ds-back{display:inline-flex;align-items:center;gap:10px;font:800 17px/1.55 \"Atkinson Hyperlegible Next\",system-ui,sans-serif;color:var(--navy-ink,#1d2a5b);text-decoration:none}.ds-back svg{color:var(--gold-ink,#8a5f00);transition:transform .2s cubic-bezier(.2,.8,.2,1)}.ds-back:hover svg{transform:translateX(-4px)}.ds-back:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Eras Shelf",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "One navy volume per era on a 14px gold shelf board, 6px apart. Width follows era length (min 62px), height follows hours. Cover at the top, artists up the spine in slab School Gold, years below. The open era is pulled out (up 22px, rotated -5deg, Lift, gold outline on its cover); hover lifts a spine 10px.",
+      "html": "<div class=\"ds-shelf-wrap\"><ol class=\"ds-shelf\"><li style=\"--w:78px;--h:300px\"><a class=\"ds-spine\" href=\"#\"><span class=\"ds-spine-art\"></span><span class=\"ds-spine-t\">Radiohead and Portishead</span><span class=\"ds-spine-y\">14&ndash;15</span></a></li><li style=\"--w:96px;--h:340px\"><a class=\"ds-spine on\" href=\"#\" aria-current=\"true\"><span class=\"ds-spine-art\"></span><span class=\"ds-spine-t\">Phoebe Bridgers</span><span class=\"ds-spine-y\">2020</span></a></li><li style=\"--w:64px;--h:260px\"><a class=\"ds-spine\" href=\"#\"><span class=\"ds-spine-art\"></span><span class=\"ds-spine-t\">Big Thief</span><span class=\"ds-spine-y\">2021</span></a></li></ol><div class=\"ds-shelf-board\" aria-hidden=\"true\"></div></div>",
+      "css": ".ds-shelf{list-style:none;margin:0;padding:40px 32px 0 4px;display:flex;align-items:flex-end;gap:6px;overflow-x:auto}.ds-shelf li{flex:0 0 var(--w);height:var(--h)}.ds-spine{display:flex;flex-direction:column;align-items:center;gap:14px;height:100%;box-sizing:border-box;padding:12px 0 14px;background:var(--spine,#1d2a5b);color:var(--gold,#f2b632);text-decoration:none;transform-origin:bottom left;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}.ds-spine:hover{transform:translateY(-10px);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16))}.ds-spine.on{transform:translateY(-22px) rotate(-5deg);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16));position:relative;z-index:1}.ds-spine-art{display:block;width:calc(var(--w) - 18px);max-width:64px;aspect-ratio:1;flex:none;background:var(--paper-2,#f5f3ec)}.ds-spine.on .ds-spine-art{outline:3px solid var(--gold,#f2b632);outline-offset:2px}.ds-spine-t{flex:1;min-height:0;max-width:calc(var(--w) - 14px);writing-mode:vertical-rl;transform:rotate(180deg);font:400 20px/1.12 \"Alfa Slab One\",Rockwell,serif;color:var(--gold,#f2b632);overflow:hidden}.ds-spine-y{flex:none;font:800 14px \"Atkinson Hyperlegible Next\",system-ui,sans-serif;color:#dfe4f6;font-variant-numeric:tabular-nums}.ds-shelf-board{height:14px;background:var(--gold,#f2b632);margin-top:-1px}.ds-spine:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}"
+    },
+    {
+      "name": "Sub-era Timeline",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A 96px band across the school year (Aug 1 to Jul 31) on Paper Shade. Sub-eras are navy blocks placed by date, alternating Spine and Spine 2, each carrying its top song's 64px cover. A 6px gold rule with month ticks runs under the band; names (slab navy 16px) and dates (14px) sit below at each start date, each tied to the rule by a 2px gold leader. Colliding labels drop a 58px row; names are never cut off.",
+      "html": "<div class=\"ds-sy\"><div class=\"ds-sy-band\"><a class=\"ds-seg\" href=\"#\" style=\"left:0;width:34%\"><span class=\"ds-seg-art\"></span></a><a class=\"ds-seg alt\" href=\"#\" style=\"left:34%;width:28%\"><span class=\"ds-seg-art\"></span></a><a class=\"ds-seg\" href=\"#\" style=\"left:62%;width:38%\"><span class=\"ds-seg-art\"></span></a></div><div class=\"ds-sy-months\"><span style=\"left:0\">Aug</span><span style=\"left:25%\">Nov</span><span style=\"left:50%\">Feb</span><span style=\"left:75%\">May</span></div><div class=\"ds-sy-labels\"><a class=\"ds-lab\" href=\"#\" style=\"left:0;top:0;--lead:36px\"><span class=\"t\">Mitski</span><span class=\"d\">Aug 1 to Dec 3</span></a><a class=\"ds-lab\" href=\"#\" style=\"left:34%;top:0;--lead:36px\"><span class=\"t\">Fleet Foxes and Bon Iver</span><span class=\"d\">Dec 4 to Mar 18</span></a><a class=\"ds-lab\" href=\"#\" style=\"left:62%;top:58px;--lead:94px\"><span class=\"t\">Japanese Breakfast</span><span class=\"d\">Mar 19 to Jul 31</span></a></div></div>",
+      "css": ".ds-sy{font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-sy-band{position:relative;height:96px;background:var(--paper-2,#f5f3ec)}.ds-seg{position:absolute;top:0;bottom:0;display:flex;align-items:center;box-sizing:border-box;padding:0 10px;background:var(--spine,#1d2a5b);overflow:hidden}.ds-seg.alt{background:var(--spine-2,#26357a)}.ds-seg:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}.ds-seg-art{display:block;width:64px;height:64px;flex:none;background:var(--paper-2,#f5f3ec)}.ds-sy-months{position:relative;height:26px;border-top:6px solid var(--gold,#f2b632);font-size:14px;color:var(--text-muted,#6e6a63)}.ds-sy-months span{position:absolute;top:4px;padding-left:4px;border-left:1px solid var(--axis,#c9c4b8)}.ds-sy-labels{position:relative;height:116px;margin-top:10px;isolation:isolate}.ds-lab{position:absolute;display:flex;flex-direction:column;max-width:280px;padding-left:10px;text-decoration:none}.ds-lab::before{content:\"\";position:absolute;left:0;top:calc(-1 * var(--lead,36px));bottom:0;width:2px;background:var(--gold,#f2b632);z-index:-1}.ds-lab span{width:fit-content;background:var(--page,#fff);padding-right:4px}.ds-lab .t{font:400 16px/1.15 \"Alfa Slab One\",Rockwell,serif;color:var(--navy-ink,#1d2a5b)}.ds-lab .d{font-size:14px;font-weight:600;color:var(--text-secondary,#4d4a45)}.ds-lab:hover .t{text-decoration:underline;text-decoration-color:var(--gold,#f2b632);text-underline-offset:3px}"
+    },
+    {
+      "name": "Filters Window",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Modal dialog at 90vw by 90vh on Paper with an 8px gold top edge and the Lift, page dimmed behind it. A sticky header holds the title and a plain drawn X (hover turns Gold Ink). Closes with the X, Escape, or a click on the dimmed area.",
+      "html": "<div class=\"ds-dim\"><div class=\"ds-filters\" role=\"dialog\" aria-labelledby=\"dsft\"><div class=\"ds-filters-head\"><h2 id=\"dsft\">What counts</h2><button class=\"ds-x\" type=\"button\" aria-label=\"Close\"><svg viewBox=\"0 0 24 24\" width=\"28\" height=\"28\" aria-hidden=\"true\"><path d=\"M5 5l14 14M19 5L5 19\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"square\"/></svg></button></div><p class=\"ds-filters-p\">Turned-on filters leave plays out of every list, chart and total.</p><label class=\"ds-rule\"><input type=\"checkbox\" checked><span><span class=\"t\">Skip short plays</span><span class=\"d\">Leave out plays under 30 seconds.</span></span></label></div></div>",
+      "css": ".ds-dim{padding:32px;background:rgba(10,15,36,.62);font-family:\"Atkinson Hyperlegible Next\",system-ui,sans-serif}.ds-filters{min-height:300px;padding:0 clamp(20px,4vw,56px) 32px;background:var(--surface-1,#fff);color:var(--ink,#16130f);border-top:8px solid var(--gold,#f2b632);box-shadow:var(--lift,0 2px 6px rgba(22,19,15,.08),0 18px 40px rgba(22,19,15,.16));overflow:auto}.ds-filters-head{position:sticky;top:0;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:32px 0 8px;background:var(--surface-1,#fff)}.ds-filters-head h2{margin:0;font:400 clamp(28px,3vw,36px)/1.12 \"Alfa Slab One\",Rockwell,serif;color:var(--navy-ink,#1d2a5b)}.ds-x{flex:none;padding:10px;border:0;background:none;color:var(--ink,#16130f);cursor:pointer}.ds-x:hover{color:var(--gold-ink,#8a5f00)}.ds-x:focus-visible{outline:3px solid var(--gold,#f2b632);outline-offset:3px}.ds-filters-p{color:var(--text-secondary,#4d4a45);font-size:17px}.ds-rule{display:flex;gap:12px;padding:8px 0;cursor:pointer}.ds-rule input{width:20px;height:20px;margin-top:3px;accent-color:var(--navy,#1d2a5b);flex:none}.ds-rule .t{display:block;font-weight:600}.ds-rule .d{display:block;font-size:15px;color:var(--text-secondary,#4d4a45)}"
     }
   ],
   "narrative": {

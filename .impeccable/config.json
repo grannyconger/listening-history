@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "docs/styles.css"
+        ],
+        "createdAt": "2026-11-09T03:20:17.058Z",
+        "reason": "Claude judged: the only side borders in this stylesheet are the sub-era timeline date ticks (.sy-label) and the phone month axis (.sy-months), data marks rather than card accents"
+      }
+    ]
+  }
+}

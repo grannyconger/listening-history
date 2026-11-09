@@ -359,38 +359,6 @@ function firstSeen(what) {
 }
 
 // ---------------- reused chart builders
-function bumpChart(el) {
-  const years = P.years.filter(y => itemStats(y).totals.music > 20 * 3600);
-  const ranks = years.map(y => topN(itemStats(y).artists.secs, 10));
-  const m = { t: 24, r: 10, b: 10, l: 10 }, rowH = 34;
-  const { svg, g, iw } = frame(el, m.t + m.b + rowH * 10, m);
-  const x = d3.scalePoint().domain(years).range([0, iw]).padding(0.5), colW = x.step();
-  const yy = r => r * rowH + rowH / 2;
-  years.forEach(y => g.append('text').attr('x', x(y)).attr('y', -8).attr('text-anchor', 'middle').attr('class', 'lbl-strong').text(y));
-  const pos = new Map(); ranks.forEach((list, yi) => list.forEach((a, r) => { if (!pos.has(a)) pos.set(a, []); pos.get(a).push([yi, r]); }));
-  const lines = g.append('g'), cells = g.append('g');
-  pos.forEach((pts, a) => {
-    for (let k = 1; k < pts.length; k++) if (pts[k][0] === pts[k - 1][0] + 1) {
-      const [y0, r0] = pts[k - 1], [y1, r1] = pts[k];
-      lines.append('path').attr('data-a', a).attr('d', `M${x(years[y0]) + colW * 0.42},${yy(r0)} C${x(years[y0]) + colW * 0.5},${yy(r0)} ${x(years[y1]) - colW * 0.5},${yy(r1)} ${x(years[y1]) - colW * 0.42},${yy(r1)}`)
-        .attr('fill', 'none').attr('stroke', 'var(--axis)').attr('stroke-width', 2);
-    }
-  });
-  const maxChars = Math.max(4, Math.floor(colW * 0.9 / 7.8));
-  ranks.forEach((list, yi) => list.forEach((a, r) => {
-    const gg = cells.append('g').attr('data-a', a).style('cursor', 'pointer');
-    gg.append('rect').attr('x', x(years[yi]) - colW * 0.42).attr('y', yy(r) - 12).attr('width', colW * 0.84).attr('height', 24).attr('fill', 'var(--page)');
-    const nm = D.lib.artists[a];
-    gg.append('text').attr('x', x(years[yi])).attr('y', yy(r) + 4).attr('text-anchor', 'middle').attr('class', 'lbl').text(nm.length > maxChars ? nm.slice(0, maxChars - 1) + '…' : nm);
-    gg.on('mouseenter', ev => { hl(a); tip.show(`<b>${esc(nm)}</b>${tipRows(pos.get(a).map(([yi2, r2]) => [String(years[yi2]), `#${r2 + 1} · ${fmtH(itemStats(years[yi2]).artists.secs[a])}`]))}`, ev); })
-      .on('mousemove', ev => tip.move(ev)).on('mouseleave', () => { hl(null); tip.hide(); }).on('click', () => { tip.hide(); location.hash = `#/artist/${a}`; });
-  }));
-  function hl(a) {
-    lines.selectAll('path').attr('stroke', function () { return a != null && +this.dataset.a === a ? 'var(--accent)' : 'var(--axis)'; }).attr('stroke-width', function () { return a != null && +this.dataset.a === a ? 3 : 2; });
-    cells.selectAll('g').each(function () { const on = a != null && +this.dataset.a === a; d3.select(this).select('text').attr('fill', a == null ? null : on ? 'var(--accent-ink)' : 'var(--text-muted)').attr('font-weight', on ? 700 : null); });
-  }
-  dataTable(el, ['Rank'].concat(years.map(String)), d3.range(10).map(r => [`#${r + 1}`].concat(ranks.map(l => (l[r] != null ? D.lib.artists[l[r]] : '')))));
-}
 let raceTimer = null;
 function race() {
   const act = active(), months = new Map();
@@ -579,15 +547,20 @@ function weekBlock() {
   const wn = $('#wnow'); if (wn) wn.onclick = () => { RD.weekOffset = 0; weekBlock(); };
 }
 
-// ---------------- Binge: songs played heavily in one season
-// Seasons: winter Dec–Feb (December counts toward the next year's winter), spring Mar–May, summer Jun–Aug, fall Sep–Nov.
-const SEASONS = ['Winter', 'Spring', 'Summer', 'Fall'];
-const seasonOf = (y, m) => (m === 11 ? (y + 1) * 4 : y * 4 + Math.floor((m + 1) / 3) % 4);
-function seasonLabel(k) { const y = Math.floor(k / 4), q = k % 4; return q === 0 ? `Winter ${y - 1}–${String(y).slice(2)}` : `${SEASONS[q]} ${y}`; }
+// ---------------- Binges: school years (Aug 1 to Jul 31), seasons and data-driven sub-eras
+// Seasons follow the school year: Fall Aug to Nov, Winter Dec to Feb, Spring Mar to May, Summer Jun to Jul.
+const SEASONS = ['Fall', 'Winter', 'Spring', 'Summer'];
+const SEASON_MONTHS = ['Aug to Nov', 'Dec to Feb', 'Mar to May', 'Jun and Jul'];
+const schoolYear = (y, m) => (m >= 7 ? y : y - 1);
+const seasonQ = m => (m >= 7 && m <= 10 ? 0 : m === 11 || m <= 1 ? 1 : m <= 4 ? 2 : 3);
+const seasonOf = (y, m) => schoolYear(y, m) * 4 + seasonQ(m);
+const syLabel = sy => `${sy}–${String(sy + 1).slice(2)}`;
+function seasonLabel(k) { const sy = Math.floor(k / 4), q = k % 4; return `${SEASONS[q]} ${q === 0 ? sy : q === 1 ? syLabel(sy) : sy + 1}`; }
+const syStart = sy => Date.UTC(sy, 7, 1) / 1000, syEnd = sy => Date.UTC(sy + 1, 7, 1) / 1000;
 const BINGE_MIN = 8; // plays in the season before a song can count as a binge
 function bingeData() {
   return memo('binge', () => {
-    const act = active(), total = trackStatsAll().plays, per = new Map(); // season -> Map(track -> {n, days: Map(day -> n)})
+    const act = active(), total = trackStatsAll().plays, per = new Map(); // season -> Map(track -> {n, days})
     for (let p = 0; p < P.n; p++) {
       if (!act[p] || P.k[p] !== 0 || P.s[p] < 30) continue;
       const k = seasonOf(P.year[p], P.mon[p]); let m = per.get(k); if (!m) per.set(k, m = new Map());
@@ -610,46 +583,136 @@ function bingeData() {
     return seasons;
   }, false);
 }
+/** Merge neighbouring units (months or weeks) while their top artists stay alike */
+function segmentUnits(units, MIN, THRESH) {
+  const unit = m => { const v = new Map(); let s = 0; m.forEach((x, a) => { const r = Math.sqrt(x); v.set(a, r); s += r * r; }); s = Math.sqrt(s) || 1; v.forEach((x, a) => v.set(a, x / s)); return v; };
+  const sum = (u, v) => { const o = new Map(u); v.forEach((x, a) => o.set(a, (o.get(a) || 0) + x)); return o; };
+  const cos = (u, v) => { let d = 0, nu = 0, nv = 0; const [sm, lg] = u.size < v.size ? [u, v] : [v, u]; sm.forEach((x, a) => { const y = lg.get(a); if (y) d += x * y; }); u.forEach(x => { nu += x * x; }); v.forEach(x => { nv += x * x; }); return d / Math.sqrt(nu * nv || 1); };
+  let segs = units.map(u => ({ a: u.k, b: u.k, n: 1, v: unit(u.m) }));
+  while (segs.length > 1) {
+    let bi = -1, bs = -Infinity;
+    for (let i = 0; i < segs.length - 1; i++) { const sc = cos(segs[i].v, segs[i + 1].v) + (Math.min(segs[i].n, segs[i + 1].n) < MIN ? 1 : 0); if (sc > bs) { bs = sc; bi = i; } }
+    if (bs < THRESH) break;
+    const x = segs[bi], y = segs[bi + 1];
+    segs.splice(bi, 2, { a: x.a, b: y.b, n: x.n + y.n, v: sum(x.v, y.v) });
+  }
+  return segs;
+}
+const SUB_MIN_WEEKS = 4, SUB_THRESH = 0.72;
+/** One school year: its sub-eras (from week-by-week artist changes), seasons and totals */
+function schoolYearData(sy) {
+  return memo('sy', () => {
+    const { seq } = musicSeq(), t0 = syStart(sy), t1 = syEnd(sy), d0 = Math.floor(t0 / 86400);
+    let lo = 0, hi = seq.length; while (lo < hi) { const m = (lo + hi) >> 1; if (P.t[seq[m]] < t0) lo = m + 1; else hi = m; }
+    const plays = []; for (let j = lo; j < seq.length && P.t[seq[j]] < t1; j++) plays.push(seq[j]);
+    if (!plays.length) return null;
+    const weeks = new Map(), wk = p => Math.min(51, Math.floor((P.day[p] - d0) / 7));
+    let secs = 0; const yearArt = new Map();
+    for (const p of plays) { const w = wk(p); let m = weeks.get(w); if (!m) weeks.set(w, m = new Map()); m.set(P.artist[p], (m.get(P.artist[p]) || 0) + P.s[p]); secs += P.s[p]; yearArt.set(P.artist[p], (yearArt.get(P.artist[p]) || 0) + P.s[p]); }
+    const units = [...weeks.keys()].sort((a, b) => a - b).filter(w => { let x = 0; weeks.get(w).forEach(v => { x += v; }); return x >= 3600; }).map(w => ({ k: w, m: weeks.get(w) }));
+    const segs = units.length ? segmentUnits(units, SUB_MIN_WEEKS, SUB_THRESH) : [{ a: 0, b: 51 }];
+    segs.forEach((g, i) => { g.a = i === 0 ? 0 : g.a; g.b = i < segs.length - 1 ? segs[i + 1].a - 1 : 51; });
+    const total = trackStatsAll().plays;
+    const subs = segs.map(g => ({ a: g.a, b: g.b, start: (d0 + g.a * 7) * 86400, end: (g.b >= 51 ? t1 : Math.min(t1, (d0 + (g.b + 1) * 7) * 86400)) - 1, tr: new Map(), ar: new Map(), secs: 0 }));
+    const subOf = w => subs.findIndex(x => w >= x.a && w <= x.b);
+    for (const p of plays) { const x = subs[subOf(wk(p))]; x.secs += P.s[p]; x.tr.set(P.i[p], (x.tr.get(P.i[p]) || 0) + 1); x.ar.set(P.artist[p], (x.ar.get(P.artist[p]) || 0) + P.s[p]); }
+    subs.forEach(x => {
+      x.songs = [...x.tr].filter(([, c]) => c >= 4).map(([t, c]) => ({ t, n: c, share: c / (total[t] || c), score: c * c / (total[t] || c) })).sort((u, v) => v.score - u.score);
+      x.artists = [...x.ar].sort((u, v) => v[1] - u[1]);
+      const sig = [...x.ar].map(([a, v]) => [a, v * v / (yearArt.get(a) || v)]).sort((u, v) => v[1] - u[1]);
+      x.lead = [sig[0][0]]; if (sig[1] && sig[1][1] > sig[0][1] * 0.45) x.lead.push(sig[1][0]);
+    });
+    return { sy, secs, subs: subs.filter(x => x.secs > 0), plays: plays.length };
+  }, true, 'sy' + sy);
+}
+const subName = x => listText(x.lead.map(a => D.lib.artists[a]));
+const fmtMD = t => { const d = dateOf(t); return `${MON[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+function schoolYears() { return memo('sys', () => { const ys = new Set(bingeData().map(s => Math.floor(s.k / 4))); return [...ys].filter(sy => { const d = schoolYearData(sy); return d && d.secs >= 20 * 3600; }).sort((a, b) => a - b); }, false); }
+
 const BG = { shown: 10 };
-V.binge = ([kS]) => {
-  const seasons = bingeData();
-  if (!seasons.length) { view().innerHTML = `<section class="page-intro"><h1>Binge</h1><p>${esc(filterNote())} No songs were played enough in one season to count.</p></section>`; return; }
-  const byK = new Map(seasons.map(s => [s.k, s]));
-  const cur = byK.get(+kS) || seasons[seasons.length - 1];
-  const y0 = Math.floor(seasons[0].k / 4), y1 = Math.floor(seasons[seasons.length - 1].k / 4);
-  const rows = d3.range(y1, y0 - 1, -1).map(y => {
-    const cells = SEASONS.map((_, q) => {
-      const s = byK.get(y * 4 + q);
-      if (!s) return `<span class="binge-cell empty" aria-hidden="true"></span>`;
-      const top = s.songs[0], [name, ai] = D.lib.tracks[top.t];
-      return `<a class="binge-cell ${s.k === cur.k ? 'on' : ''}" href="#/binge/${s.k}" aria-label="${esc(seasonLabel(s.k))}: ${esc(name)} by ${esc(D.lib.artists[ai])}" ${s.k === cur.k ? 'aria-current="true"' : ''}>${img(trackUrl(top.t), name, 'cover')}<span class="t">${esc(name)}</span></a>`;
-    }).join('');
-    return `<div class="binge-row"><span class="binge-year">${y}</span>${cells}</div>`;
-  }).join('');
-  const list = cur.songs.slice(0, BG.shown);
-  const lead = cur.songs[0];
-  view().innerHTML = `
-    <section class="page-intro"><h1>Binge</h1><p>The songs you couldn't stop playing, season by season. A binge is a song you played at least ${BINGE_MIN} times in one season, ranked by how many of its plays ever happened in that season.</p></section>
-    <section class="block">
-      <h2>${esc(seasonLabel(cur.k))}</h2>
-      <p class="sub">${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])} was your biggest binge, ${fmtInt(lead.n)} plays. ${lead.share >= 0.5 ? `That's ${pct(lead.share)} of every play it has ever had.` : ''}${lead.bestN >= 3 ? ` On ${fmtDay(lead.bestDay)} alone you played it ${lead.bestN} times.` : ''}</p>
-      ${mixTools(cur.songs.slice(0, 30).map(s => s.t), `Binge: ${seasonLabel(cur.k)}`, `The songs I could not stop playing in ${seasonLabel(cur.k)}.`)}
-      ${coverRow(list.slice(0, 4).map(s => s.t), (t, i) => `${fmtInt(list[i].n)} plays, ${pct(list[i].share)} of all its plays`)}
-      <ol class="rank-list" start="5">${list.slice(4).map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays, ${pct(s.share)} of all its plays`, i + 5)).join('')}</ol>
-      ${cur.songs.length > BG.shown ? `<button class="btn ghost more" id="bmore">Show ${Math.min(10, cur.songs.length - BG.shown)} more</button>` : ''}
-    </section>
-    <section class="block">
-      <h2>Every season</h2>
-      <p class="sub">The top binge of each season. Pick one to see its list.</p>
-      <p class="note">${esc(filterNote())}</p>
-      <div class="binge-grid">
-        <div class="binge-row head" aria-hidden="true"><span class="binge-year"></span>${SEASONS.map(s => `<span class="binge-season">${s}</span>`).join('')}</div>
-        ${rows}
-      </div>
-    </section>`;
-  const m = $('#bmore'); if (m) m.onclick = () => { BG.shown += 10; V.binge([String(cur.k)]); };
-  view().querySelectorAll('.binge-cell[href]').forEach(a => a.addEventListener('click', () => { BG.shown = 10; }));
+V.binges = ([syS, qS]) => {
+  const seasons = bingeData(), sys = schoolYears();
+  if (!seasons.length || !sys.length) { view().innerHTML = `<section class="page-intro"><h1>Binges</h1><p>${esc(filterNote())} No songs were played enough in one season to count.</p></section>`; return; }
+  if (syS == null) return bingesLanding(seasons, sys);
+  const sy = sys.includes(+syS) ? +syS : sys[sys.length - 1];
+  bingesYear(sy, seasons, sys, qS != null ? +qS : null);
 };
+function bingesLanding(seasons, sys) {
+  const byK = new Map(seasons.map(s => [s.k, s]));
+  const rows = sys.slice().reverse().map(sy => `<div class="binge-row"><a class="binge-year" href="#/binges/${sy}">${syLabel(sy)}</a>${SEASONS.map((_, q) => {
+    const s = byK.get(sy * 4 + q);
+    if (!s) return `<span class="binge-cell empty" aria-hidden="true"></span>`;
+    const top = s.songs[0], [name, ai] = D.lib.tracks[top.t];
+    return `<a class="binge-cell" href="#/binges/${sy}/${q}" aria-label="${esc(seasonLabel(s.k))}: ${esc(name)} by ${esc(D.lib.artists[ai])}">${img(trackUrl(top.t), name, 'cover')}<span class="t">${esc(name)}</span></a>`;
+  }).join('')}</div>`).join('');
+  view().innerHTML = `
+    <section class="page-intro"><h1>Binges</h1><p>The songs you couldn't stop playing, one school year per row, from August 1 to July 31. Each cover is that season's biggest binge. Pick a year to see it season by season and sub-era by sub-era.</p></section>
+    <div class="binge-grid binge-landing">
+      <div class="binge-row head" aria-hidden="true"><span class="binge-year"></span>${SEASONS.map((s, q) => `<span class="binge-season">${s}<small>${SEASON_MONTHS[q]}</small></span>`).join('')}</div>
+      ${rows}
+    </div>
+    <p class="note">${esc(filterNote())} A binge is a song you played at least ${BINGE_MIN} times in one season, ranked by how many of its plays ever happened in that season.</p>`;
+}
+function bingesYear(sy, seasons, sys, focusQ) {
+  const d = schoolYearData(sy), i = sys.indexOf(sy), prev = sys[i - 1], next = sys[i + 1];
+  const byK = new Map(seasons.map(s => [s.k, s])), span = syEnd(sy) - syStart(sy);
+  const monthTicks = d3.range(12).map(m => ({ m: (m + 7) % 12, x: (Date.UTC(sy + (m + 7 >= 12 ? 1 : 0), (m + 7) % 12, 1) / 1000 - syStart(sy)) / span * 100 }));
+  const subs = d.subs;
+  const arrow = dir => `<svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true" ${dir === 'l' ? 'style="transform:scaleX(-1)"' : ''}><path d="M6 16h20M18 8l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>`;
+  view().innerHTML = `
+    <a class="back" href="#/binges"><svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M26 16H6M14 8l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>All school years</a>
+    <section class="sy-head">
+      ${prev != null ? `<a class="sy-turn prev" href="#/binges/${prev}" aria-label="Earlier school year, ${syLabel(prev)}">${arrow('l')}<span>${syLabel(prev)}</span></a>` : '<span class="sy-turn"></span>'}
+      <div class="sy-title"><h1>${syLabel(sy)}</h1><p>August 1, ${sy} to July 31, ${sy + 1}. ${fmtInt(d.secs / 3600)} hours of music.</p></div>
+      ${next != null ? `<a class="sy-turn next" href="#/binges/${next}" aria-label="Later school year, ${syLabel(next)}"><span>${syLabel(next)}</span>${arrow('r')}</a>` : '<span class="sy-turn"></span>'}
+    </section>
+    <section class="block sy-timeline-block">
+      <h2>Sub-eras</h2>
+      <p class="sub">${subs.length === 1 ? 'This school year was one steady stretch: the artists you played stayed about the same all year.' : `This school year had ${subs.length} sub-eras. A new one starts when the artists you play shift for a few weeks or more.`}</p>
+      <div class="sy-track">
+      <div class="sy-timeline" role="list">
+        ${subs.map((x, k) => { const s = x.songs[0]; const left = (x.start - syStart(sy)) / span * 100, width = (x.end + 1 - x.start) / span * 100; return `<a role="listitem" class="sy-seg ${width < 15 ? 'narrow' : ''} ${k % 2 ? 'alt' : ''}" href="#sub${k}" data-sub="${k}" style="--x:${left.toFixed(2)}%;--w:${width.toFixed(2)}%" aria-label="${esc(subName(x))}, ${fmtMD(x.start)} to ${fmtMD(x.end)}">${s ? img(trackUrl(s.t), D.lib.tracks[s.t][0], 'seg-art') : ''}<span class="seg-txt" aria-hidden="true"><span class="seg-t">${esc(subName(x))}</span><span class="seg-d">${fmtMD(x.start)} to ${fmtMD(x.end)}</span></span></a>`; }).join('')}
+      </div>
+      <div class="sy-months" aria-hidden="true">${monthTicks.map(t => `<span style="--x:${t.x.toFixed(2)}%">${MON[t.m]}</span>`).join('')}</div>
+      </div>
+      <div class="sy-labels" aria-hidden="true">${subs.map((x, k) => `<a class="sy-label" href="#sub${k}" data-sub="${k}" tabindex="-1" style="--x:${((x.start - syStart(sy)) / span * 100).toFixed(2)}%"><span class="seg-t">${esc(subName(x))}</span><span class="seg-d">${fmtMD(x.start)} to ${fmtMD(x.end)}</span></a>`).join('')}</div>
+    </section>
+    ${subs.map((x, k) => `<section class="block sub-era" id="sub${k}">
+      <h2>${esc(subName(x))}</h2>
+      <p class="sub">${fmtMD(x.start)} to ${fmtMD(x.end)}, ${fmtH(x.secs)} of music.${x.songs[0] ? ` The song of this stretch was ${trackLink(x.songs[0].t)}, played ${fmtInt(x.songs[0].n)} times.` : ''}</p>
+      <div class="era-grid">
+        <div>${x.songs.length ? `${mixTools(x.songs.slice(0, 30).map(o => o.t), `${subName(x)}, ${fmtMD(x.start)} ${yearOf(x.start)} to ${fmtMD(x.end)} ${yearOf(x.end)}`, `My songs from ${fmtMD(x.start)} to ${fmtMD(x.end)} in ${syLabel(sy)}.`)}
+          ${coverRow(x.songs.slice(0, 3).map(o => o.t), (t, j) => `${fmtInt(x.songs[j].n)} plays`)}
+          <ol class="rank-list">${x.songs.slice(3, 8).map((o, j) => songRow(o.t, `${fmtInt(o.n)} plays`, j + 4)).join('')}</ol>` : '<p class="muted">No song was played enough to stand out.</p>'}</div>
+        <div><h3>Top artists</h3>${portraits(x.artists.slice(0, 3).map(([a, v]) => ({ a, cap: fmtH(v) })), 'three')}</div>
+      </div>
+    </section>`).join('')}
+    <section class="block" id="seasons">
+      <h2>Season by season</h2>
+      <p class="sub">The biggest binges of each season of ${syLabel(sy)}.</p>
+      <div class="season-cols">${SEASONS.map((sn, q) => { const s = byK.get(sy * 4 + q); return `<div class="season-col ${focusQ === q ? 'on' : ''}" id="season${q}"><h3 class="slab">${sn}</h3><p class="muted season-m">${SEASON_MONTHS[q]}</p>${s ? `${mixTools(s.songs.slice(0, 30).map(o => o.t), `Binges: ${seasonLabel(s.k)}`, `The songs I could not stop playing in ${seasonLabel(s.k)}.`)}<ol class="rank-list">${s.songs.slice(0, 5).map((o, j) => songRow(o.t, `${fmtInt(o.n)} plays`, j + 1)).join('')}</ol>` : '<p class="muted">No binges this season.</p>'}</div>`; }).join('')}</div>
+    </section>`;
+  if (focusQ != null) requestAnimationFrame(() => jumpTo('season' + focusQ, false));
+  view().querySelectorAll('[data-sub]').forEach(a => a.onclick = e => { e.preventDefault(); jumpTo('sub' + a.dataset.sub); });
+  layoutSubLabels(); if (document.fonts) document.fonts.ready.then(layoutSubLabels);
+}
+/** Place sub-era names under the timeline at their start dates, moving a name down a row when it would collide */
+function layoutSubLabels() {
+  const box = $('.sy-labels'); if (!box || getComputedStyle(box).display === 'none') return;
+  const W = box.clientWidth, ends = [], gap = 18, rowH = 58;
+  box.querySelectorAll('.sy-label').forEach(l => {
+    let x = parseFloat(l.style.getPropertyValue('--x')) / 100 * W; const w = Math.min(l.offsetWidth, 280);
+    x = Math.min(x, W - w);
+    let r = ends.findIndex(e => e + gap <= x); if (r < 0) { r = ends.length; ends.push(0); }
+    ends[r] = x + w; l.style.left = x + 'px'; l.style.top = r * rowH + 'px'; l.style.setProperty('--lead', (r * rowH + 36) + 'px'); // leader runs up to the gold axis
+  });
+  box.style.height = ends.length * rowH + 'px';
+}
+document.addEventListener('keydown', e => { // arrow keys turn school years on a Binges year page
+  if (!/^#\/binges\/\d+/.test(location.hash) || /input|textarea|select/i.test(document.activeElement.tagName)) return;
+  const a = e.key === 'ArrowRight' ? $('.sy-turn.next') : e.key === 'ArrowLeft' ? $('.sy-turn.prev') : null;
+  if (a && a.href) { e.preventDefault(); location.hash = a.getAttribute('href'); }
+});
 
 // ---------------- Explore: library + cover wall
 const LIB = { tab: 'tracks', q: '', sort: 'secs', shown: 50 };
@@ -721,7 +784,7 @@ V.artist = ([aiS]) => {
   const rank = 1 + Array.prototype.filter.call(st.artists.secs, v => v > secs).length;
   const peak = [...monS].sort((a, b) => b[1] - a[1])[0];
   const topTracks = [...trP].sort((a, b) => b[1] - a[1]);
-  view().innerHTML = `<section class="hero person">${img(artistUrl(ai), L.artists[ai], 'lg portrait')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
+  view().innerHTML = `${backLink()}<section class="hero person">${img(artistUrl(ai), L.artists[ai], 'lg portrait')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
       <p>Your number ${rank} artist. You've listened for ${fmtH(secs)} since ${monthName(first)}, most of all in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.</p>${artistStart(ai)}</div></section>
     <p class="lead-text facts-line">${fmtInt(plays)} plays across ${fmtInt(topTracks.length)} different songs. You played ${pct(done / started)} of them to the end, and last played this artist in ${monthName(last)}.</p>
     <section class="block"><h2>Listening over time</h2><p class="sub">Hours per month</p><div class="chart" id="c-am"></div></section>
@@ -749,7 +812,7 @@ V.track = ([tiS]) => {
   }
   if (!plays) { view().innerHTML = `<section class="page-intro"><h1>${esc(name)}</h1><p>${esc(filterNote())} No plays of this song are included.</p></section>`; return; }
   const peak = [...monP].sort((a, b) => b[1] - a[1])[0];
-  view().innerHTML = `<section class="hero">${img(trackUrl(ti), name, 'lg')}<div class="meta"><h1>${esc(name)}</h1>
+  view().innerHTML = `${backLink()}<section class="hero">${img(trackUrl(ti), name, 'lg')}<div class="meta"><h1>${esc(name)}</h1>
       <p>${artistLink(ai)}, from ${esc(L.albums[al][0])}</p>
       <p>You first played it in ${monthName(P.t[first])} and have played it ${fmtInt(plays)} times since. It peaked in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.${lifeNote(ti)}</p>
       <button class="btn" type="button" data-play="track:${esc(id)}">${PLAY_SVG} Play</button></div></section>
@@ -765,27 +828,27 @@ V.track = ([tiS]) => {
 };
 
 // ---------------- Patterns: the big picture
-const PATTERN_SECTIONS = [['p-rank', 'Rankings'], ['p-race', 'Artist race'], ['p-when', 'When you listen'], ['p-how', 'Skips and shuffle'], ['p-new', 'New music'], ['p-sessions', 'Sessions'], ['p-other', 'Podcasts and books']];
+const PATTERN_SECTIONS = [['p-race', 'Artist race'], ['p-how', 'Play to the end or skip'], ['p-new', 'New music'], ['p-sessions', 'Sessions'], ['p-other', 'Podcasts and books'], ['p-when', 'When you listen']];
 V.patterns = () => {
   const yp = yearPicker(F.year, y => { F.year = y; V.patterns(); });
   view().innerHTML = `
     <section class="page-intro"><h1>Patterns</h1><p>How your listening changed over the years.</p></section>
     <nav class="jump" aria-label="On this page">${PATTERN_SECTIONS.map(([id, l]) => `<a href="#${id}" data-to="${id}">${l}</a>`).join('')}</nav>
-    <section class="block" id="p-rank"><h2>Your top 10 artists each year</h2><p class="sub">Ranked by hours. Point at a name to follow that artist across years, or click to open it.</p><div class="chart" id="bump"></div></section>
-    <section class="block" id="p-race"><h2>Artist race</h2><p class="sub">Total hours per artist, building month by month.</p>
+    <div class="year-bar"><label class="year-bar-l" for="ySelP">Year shown</label>${yp.html}<select id="ySelP" class="input select year-sel"><option value="all" ${F.year === 'all' ? 'selected' : ''}>All years</option>${storyYears().map(y => `<option value="${y}" ${+F.year === y ? 'selected' : ''}>${y}</option>`).join('')}</select></div>
+    <section class="block" id="p-race"><h2>Artist race</h2><p class="sub">Total hours per artist, building month by month across every year.</p>
       <div class="toolbar"><button class="btn" id="raceBtn" type="button">Play</button><input type="range" id="raceSlider" min="0" value="0" aria-label="Month"><span id="raceLbl" class="num race-lbl"></span></div>
       <div class="chart" id="race"></div></section>
-    <section class="block" id="p-when"><h2>When you listen</h2><p class="sub">Hours by weekday and hour of day.</p>${yp.html}<div id="clock"></div>
-      <h3 class="sub-head">By month of the year</h3><div class="chart" id="c-moy"></div></section>
-    <section class="block" id="p-how"><h2>Skips and shuffle</h2><p class="sub">Share of songs each year. Skips count songs ended with the next button, because Spotify did not record skips before 2022.</p><div class="grid g2 small-multiples" id="c-beh"></div>
+    <section class="block" id="p-how"><h2>Play to the end or skip</h2><p class="sub">Artists with at least 150 plays${F.year === 'all' ? '' : ` in ${F.year}`}. Skips count songs ended with the next button.</p>
       <div class="grid g2"><div><h3 class="sub-head">Artists you play to the end</h3><div id="comp-hi"></div></div><div><h3 class="sub-head">Artists you skip</h3><div id="comp-lo"></div></div></div></section>
-    <section class="block" id="p-new"><h2>New music</h2><div class="grid g2"><div><h3 class="sub-head">Artists heard for the first time</h3><div class="chart" id="c-na"></div></div><div><h3 class="sub-head">Share of hours on songs new that year</h3><div class="chart" id="c-fr"></div></div></div>
-      <h3 class="sub-head">Your top 30 artists through the years</h3><div id="strip" class="table-wrap"></div></section>
+    <section class="block" id="p-new"><h2>New music</h2><p class="sub">Artists you heard for the first time, by year.</p><div class="chart" id="c-na"></div></section>
     <section class="block" id="p-sessions"><h2>Sessions</h2><p class="sub">A session ends after 30 minutes of silence.</p><div id="sess"></div></section>
-    <section class="block" id="p-other"><h2>Podcasts and audiobooks</h2><div id="pods"></div></section>`;
-  yp.bind($('#p-when'));
+    <section class="block" id="p-other"><h2>Podcasts and audiobooks</h2><div id="pods"></div></section>
+    <section class="block" id="p-when"><h2>When you listen</h2><p class="sub">Hours by weekday and hour of day.</p><div id="clock"></div>
+      <h3 class="sub-head">By month of the year</h3><div class="chart" id="c-moy"></div></section>`;
+  yp.bind($('.year-bar'));
+  $('#ySelP').onchange = e => { F.year = e.target.value === 'all' ? 'all' : +e.target.value; V.patterns(); };
   view().querySelectorAll('[data-to]').forEach(a => a.onclick = e => { e.preventDefault(); jumpTo(a.dataset.to); });
-  bumpChart($('#bump')); race(); clockAndSeasons(); behavior(); discovery(); sessionsBlock(); podsBlock();
+  race(); behavior(); discovery(); sessionsBlock(); podsBlock(); clockAndSeasons();
 };
 function clockAndSeasons() {
   const sc = scope(), grid = Array.from({ length: 7 }, () => new Float64Array(24)), monS = new Float64Array(12); let total = 0;
@@ -801,12 +864,7 @@ function clockAndSeasons() {
   barChart($('#c-moy'), { data: MON.map((m, i) => ({ key: i, label: m, full: MONTH[i], value: monS[i] / 3600 })), fmt: v => fmtInt(v) + ' h', height: 180 });
 }
 function behavior() {
-  const act = active(), sc = scope(), yrs = storyYears(), beh = new Map(yrs.map(y => [y, { n: 0, done: 0, fwd: 0, shuf: 0, pick: 0 }]));
-  for (let p = 0; p < P.n; p++) { if (!act[p] || P.k[p] !== 0) continue; const o = beh.get(P.year[p]); if (!o) continue; o.n++; if (P.re[p] === REASON.trackdone) o.done++; if (P.re[p] === REASON.fwdbtn) o.fwd++; if (P.f[p] & 1) o.shuf++; if (P.rs[p] === REASON.clickrow) o.pick++; }
-  [['Played to the end', 'done'], ['Skipped with next', 'fwd'], ['Shuffle on', 'shuf'], ['Picked by you', 'pick']].forEach(([name, k]) => {
-    const box = document.createElement('div'); box.innerHTML = `<h3>${esc(name)}</h3><div class="chart"></div>`; $('#c-beh').appendChild(box);
-    lineChart(box.querySelector('.chart'), { series: [{ name, color: 'var(--ink)', values: yrs.map(y => beh.get(y)[k] / (beh.get(y).n || 1)) }], xLabels: yrs.map(String), fmt: v => pct(v), yDomain: [0, 1], height: 160 });
-  });
+  const sc = scope();
   const st = itemStats(), comp = new Map();
   for (let p = 0; p < P.n; p++) { if (!sc[p] || P.k[p] !== 0) continue; const a = P.artist[p]; let o = comp.get(a); if (!o) comp.set(a, o = [0, 0]); o[0]++; if (P.re[p] === REASON.trackdone) o[1]++; }
   const elig = [...comp].filter(([, o]) => o[0] >= 150).map(([a, o]) => [a, o[1] / o[0], o[0]]);
@@ -815,15 +873,9 @@ function behavior() {
   $('#comp-lo').innerHTML = elig.length ? li(elig.slice().sort((a, b) => a[1] - b[1]).slice(0, 8)) : '<p class="muted">Not enough plays.</p>';
 }
 function discovery() {
-  const act = active(), firstA = firstSeen('artist'), firstT = firstSeen('track'), yrs = storyYears();
+  const firstA = firstSeen('artist'), yrs = storyYears();
   const newA = new Map(yrs.map(y => [y, 0])); firstA.forEach(t => { if (isFinite(t)) { const y = dateOf(t).getUTCFullYear(); if (newA.has(y)) newA.set(y, newA.get(y) + 1); } });
-  const fresh = new Map(yrs.map(y => [y, [0, 0]]));
-  for (let p = 0; p < P.n; p++) { if (!act[p] || P.k[p] !== 0) continue; const o = fresh.get(P.year[p]); if (!o) continue; o[1] += P.s[p]; if (isFinite(firstT[P.i[p]]) && dateOf(firstT[P.i[p]]).getUTCFullYear() === P.year[p]) o[0] += P.s[p]; }
-  barChart($('#c-na'), { data: yrs.map(y => ({ key: y, label: String(y).slice(2).padStart(3, "'"), full: String(y), value: newA.get(y) })), height: 180 });
-  lineChart($('#c-fr'), { series: [{ name: 'Share of hours', color: 'var(--series-1)', values: yrs.map(y => fresh.get(y)[0] / (fresh.get(y)[1] || 1)) }], xLabels: yrs.map(y => String(y).slice(2).padStart(3, "'")), fmt: v => pct(v), yDomain: [0, 1], height: 180 });
-  const st = allTime(), top = topN(st.artists.secs, 30).sort((a, b) => firstA[a] - firstA[b]);
-  const thr = [2, 5, 10, 20, 35].map(h => h * 3600), color = seqScale(thr);
-  $('#strip').innerHTML = `${seqLegend(thr, fmtH)}<table class="tbl strip"><thead><tr><th>Artist</th>${yrs.map(y => `<th class="r">${String(y).slice(2).padStart(3, "'")}</th>`).join('')}</tr></thead><tbody>${top.map(a => `<tr><td class="name">${artistLink(a)}</td>${yrs.map(y => { const v = itemStats(y).artists.secs[a]; return `<td title="${esc(D.lib.artists[a])}, ${y}, ${fmtH(v)}"><div class="cell" style="background:${color(v)}"></div></td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
+  barChart($('#c-na'), { data: yrs.map(y => ({ key: y, label: String(y), full: String(y), value: newA.get(y) })), height: 200, highlight: F.year === 'all' ? null : +F.year });
 }
 function sessionsBlock() {
   const sc = scope(), ss = memo('sessions', () => sessions(sc)).filter(s => s.secs > 0);
@@ -838,7 +890,8 @@ function sessionsBlock() {
     <div class="grid g2"><div><h3 class="sub-head">How long sessions last</h3><div class="chart" id="c-sl"></div></div>
     <div><h3 class="sub-head">Longest sessions</h3><ol class="rank-list plain">${longest.map(s => `<li><div class="who"><div><div class="t">${fmtDate(s.start)}</div><div class="a">Mostly ${esc(label([...s.art].sort((a, b) => b[1] - a[1])[0][0]))}</div></div></div><span class="v">${fmtH(s.secs)}</span></li>`).join('')}</ol></div></div>
     <h3 class="sub-head">Songs on repeat</h3><ol class="rank-list">${runs.slice(0, 8).map(r => songRow(r.id, `${r.n} in a row, ${monthName(r.t)}`)).join('')}</ol>`;
-  barChart($('#c-sl'), { data: buckets.map(([a, b, l], i) => ({ key: i, label: l, value: lens.filter(v => v >= a && v < b).length })), height: 180, labelEvery: 1 });
+  const shortL = ['<5 min', '5–15', '15–30', '30–60', '1–2 h', '2 h+'], narrow = $('#c-sl').clientWidth < 520;
+  barChart($('#c-sl'), { data: buckets.map(([a, b, l], i) => ({ key: i, label: narrow ? shortL[i] : l, full: l, value: lens.filter(v => v >= a && v < b).length })), height: 180, labelEvery: 1 });
 }
 function podsBlock() {
   const st = itemStats(), act = active(), L = D.lib, py = new Map(), by = new Map();
@@ -1270,10 +1323,17 @@ V.eras = ([aS]) => {
   const cur = eras.find(e => e.a === +aS) || eras[eras.length - 1];
   const t0 = eras[0].a, t1 = eras[eras.length - 1].b + 1, span = t1 - t0;
   const lead = cur.songs[0];
-  const yearTicks = d3.range(Math.ceil(t0 / 12), Math.floor(t1 / 12) + 1).filter(y => y * 12 >= t0 && y * 12 < t1);
+  const maxH = Math.max(...eras.map(e => e.secs));
   view().innerHTML = `
-    <section class="page-intro"><h1>Eras</h1><p>Your listening, split into eras. A new era starts when the artists you play month to month change. Pick an era to see the songs that defined it.</p></section>
-    <section class="block era-detail" aria-labelledby="eraH">
+    <section class="page-intro"><h1>Eras</h1><p>Your listening, split into eras. A new era starts when the artists you play month to month change. Each volume is as thick as the era was long. Pull one off the shelf to open it.</p></section>
+    <section class="shelf-wrap" aria-label="Every era">
+      <ol class="shelf">${eras.map(e => { const s = e.songs[0], on = e === cur, w = Math.max(62, Math.round(30 + e.months * 3.6)), h = Math.round(340 + 160 * e.secs / maxH); const title = eraName(e).replace(/^The /, '').replace(/ era$/, '');
+        return `<li style="--w:${w}px;--h:${h}px"><a class="spine ${on ? 'on' : ''}" href="#/eras/${e.a}" ${on ? 'aria-current="true"' : ''} aria-label="${esc(eraName(e))}, ${esc(eraRange(e))}" title="${esc(eraName(e))}, ${esc(eraRange(e))}">${s ? img(trackUrl(s.t), title, 'spine-art') : ''}<span class="spine-t ${title.length > 28 ? 'long' : ''}" aria-hidden="true">${esc(title)}</span><span class="spine-y" aria-hidden="true">${Math.floor(e.a / 12) === Math.floor(e.b / 12) ? Math.floor(e.a / 12) : `${String(Math.floor(e.a / 12)).slice(2)}–${String(Math.floor(e.b / 12)).slice(2)}`}</span></a></li>`; }).join('')}</ol>
+      <div class="shelf-board" aria-hidden="true"></div>
+      <p class="shelf-hint" hidden><svg viewBox="0 0 40 32" width="30" height="24" aria-hidden="true"><path d="M5 16h30M12 9l-7 7 7 7M28 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>Swipe the shelf sideways to see all ${eras.length} eras</p>
+      <p class="note shelf-note">${eras.length} eras since ${monthKeyLabel(t0)}. ${esc(filterNote())}</p>
+    </section>
+    <section class="block era-detail" id="era-open" aria-labelledby="eraH">
       <h2 id="eraH">${esc(eraName(cur))}</h2>
       <p class="sub">${esc(eraRange(cur))}, ${cur.months} ${cur.months === 1 ? 'month' : 'months'} and ${fmtInt(cur.secs / 3600)} hours of music.${lead ? ` The song that defined it was ${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])}, played ${fmtInt(lead.n)} times${lead.share >= 0.5 ? `, ${pct(lead.share)} of all its plays ever` : ''}.` : ''}</p>
       <div class="era-grid">
@@ -1291,21 +1351,11 @@ V.eras = ([aS]) => {
         </div>
       </div>
     </section>
-    <section class="block" aria-labelledby="eraAll">
-      <h2 id="eraAll">Every era</h2>
-      <p class="sub">${eras.length} eras since ${monthKeyLabel(t0)}. The bar shows where each one falls.</p>
-      <p class="note">${esc(filterNote())}</p>
-      <ol class="era-list">${eras.slice().reverse().map(e => { const s = e.songs[0]; return `<li><a class="era-row ${e === cur ? 'on' : ''}" href="#/eras/${e.a}" ${e === cur ? 'aria-current="true"' : ''}>
-        ${img(s ? trackUrl(s.t) : artistUrl(e.lead[0]), eraName(e), 'sm')}
-        <span class="era-txt"><span class="t">${esc(eraName(e))}</span><span class="a">${esc(eraRange(e))}${s ? `, ${esc(D.lib.tracks[s.t][0])}` : ''}</span></span>
-        <span class="era-line" aria-hidden="true"><i style="left:${((e.a - t0) / span * 100).toFixed(2)}%;width:${Math.max(0.8, e.months / span * 100).toFixed(2)}%"></i>${yearTicks.map(y => `<b style="left:${((y * 12 - t0) / span * 100).toFixed(2)}%"></b>`).join('')}</span>
-      </a></li>`; }).join('')}</ol>
-      <div class="era-row era-axis-row" aria-hidden="true"><span></span><span></span><span class="era-axis">${yearTicks.filter((y, i) => i % 2 === 0).map(y => `<span style="left:${((y * 12 - t0) / span * 100).toFixed(2)}%">${y}</span>`).join('')}</span></div>
-    </section>
     <section class="block" id="life"></section>
     <section class="block" id="month"></section>`;
   lifeBlock(); monthBlock();
-  if (aS) requestAnimationFrame(() => { const el = $('.era-detail'); if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView(); });
+  if (aS) requestAnimationFrame(() => { const el = $('.era-detail'); if (el && (el.getBoundingClientRect().top < 0 || el.getBoundingClientRect().top > innerHeight * 0.75)) jumpTo('era-open', false); });
+  const sh = $('.shelf'), on = $('.spine.on'); const lastLi = sh.lastElementChild; if (lastLi && lastLi.offsetLeft + lastLi.offsetWidth > sh.clientWidth + 2) { $('.shelf-hint').hidden = false; if (on) sh.scrollLeft = on.parentElement.offsetLeft - sh.clientWidth / 2 + on.offsetWidth / 2; }
 };
 function lifeBlock() {
   const L = lifecycles(), sh = EZ.shown;
@@ -1446,9 +1496,19 @@ V.hidden = () => {
 V.notfound = () => { view().innerHTML = '<section class="page-intro"><h1>This page does not exist</h1><p><a href="#/">Go to your story</a></p></section>'; };
 
 // ================================================================ chrome: router, player, search, filters
-const NAV = [['story', 'Story'], ['eras', 'Eras'], ['rediscover', 'Rediscover'], ['binge', 'Binge'], ['connections', 'Connections'], ['explore', 'Explore'], ['patterns', 'Patterns']];
-const ALIASES = { '': 'story', overview: 'story', wrapped: 'story', library: 'explore', covers: 'explore', trends: 'patterns', habits: 'patterns', sessions: 'patterns', discovery: 'patterns', podcasts: 'patterns', onthisday: 'rediscover', excluded: 'hidden', era: 'eras', lifecycles: 'eras', paths: 'connections', discover: 'connections' };
+const NAV = [['story', 'Story'], ['eras', 'Eras'], ['rediscover', 'Rediscover'], ['binges', 'Binges'], ['connections', 'Connections'], ['explore', 'Explore'], ['patterns', 'Patterns']];
+const ALIASES = { '': 'story', overview: 'story', wrapped: 'story', library: 'explore', covers: 'explore', trends: 'patterns', habits: 'patterns', sessions: 'patterns', discovery: 'patterns', podcasts: 'patterns', onthisday: 'rediscover', binge: 'binges', timeline: 'binges', excluded: 'hidden', era: 'eras', lifecycles: 'eras', paths: 'connections', discover: 'connections' };
+// in-app history, so song and artist pages can offer a Back link to the screen you came from
+const HIST = [];
+function backLink() {
+  const prev = HIST[HIST.length - 2];
+  const label = !prev ? 'All songs and artists' : 'Back';
+  return `<a class="back" href="${prev ? esc(prev) : '#/explore/tracks'}" ${prev ? 'data-back' : ''}><svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M26 16H6M14 8l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square"/></svg>${label}</a>`;
+}
 function route() {
+  const h = location.hash || '#/story';
+  if (HIST.length > 1 && HIST[HIST.length - 2] === h) HIST.pop(); else if (HIST[HIST.length - 1] !== h) HIST.push(h);
+  if (HIST.length > 50) HIST.shift();
   if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
   tip.hide(); closeSearch(); MIX.clear();
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -1461,7 +1521,7 @@ function route() {
   try { fn(args); markPlaying(); } catch (e) { console.error(e); view().innerHTML = `<section class="page-intro"><h1>This page could not be shown</h1><p>Reload the page to try again.</p><pre class="muted">${esc(e.stack || e)}</pre></section>`; }
   const navName = (NAV.find(n => n[0] === section) || [0, ''])[1];
   document.title = `${navName ? navName + ', ' : ''}Listening History`;
-  if (!((name === 'story' || name === 'eras') && args[0])) window.scrollTo(0, 0);
+  if (!((name === 'story' || name === 'eras' || name === 'binges') && args[1] != null || (name === 'story' || name === 'eras') && args[0])) window.scrollTo(0, 0);
   view().focus({ preventScroll: true });
 }
 function invalidate() { memoStore.clear(); }
@@ -1565,7 +1625,10 @@ async function init() {
   $('#nav').innerHTML = NAV.map(([r, l]) => `<a href="#/${r}" data-r="${r}">${l}</a>`).join('');
   updateFilterBtn(); renderFilters();
   const fb = $('#filtersBtn'), panel = $('#filters');
-  fb.onclick = () => { const open = panel.hidden; panel.hidden = !open; fb.setAttribute('aria-expanded', String(open)); };
+  fb.onclick = () => { panel.showModal(); };
+  $('#filtersClose').onclick = () => panel.close();
+  panel.addEventListener('click', e => { if (e.target !== panel) return; const r = panel.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) panel.close(); }); // only a click on the dim area outside the window
+  panel.addEventListener('close', () => fb.focus());
   // search
   const s = $('#search');
   s.addEventListener('input', debounce(() => { searchSel = -1; renderSearch(); }, 80));
@@ -1580,6 +1643,7 @@ async function init() {
     if (!e.target.closest('.search')) closeSearch();
     const pb = e.target.closest('[data-play]'); if (pb) { e.preventDefault(); play(pb.dataset.play); }
     const mb = e.target.closest('[data-mix-act]'); if (mb) { e.preventDefault(); mixAction(mb); }
+    const bk = e.target.closest('[data-back]'); if (bk) { e.preventDefault(); history.back(); }
     if (e.target.closest('#searchResults a')) { s.value = ''; closeSearch(); }
   });
   document.addEventListener('keydown', e => { if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); s.focus(); } });

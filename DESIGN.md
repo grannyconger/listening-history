@@ -273,7 +273,7 @@ The year spread is the signature layout: a three-track grid (1.15fr, 6px gold gu
 
 Portrait grids use 24px row and 18px column gaps; cover rows use 24px and 20px. Lists use 8px row padding with 14px between art and text. The cover ribbon on Story scrolls sideways with snap points, 92px to 124px per cover.
 
-The masthead is a sticky navy band (14px vertical padding) holding the brand, tabs and search; under 1360px the tabs wrap to their own scrolling row, and under 900px the band stops sticking. Breakpoints in use: 1360px, 960px, 900px, 600px.
+The masthead is a sticky navy band (14px vertical padding) holding the brand, tabs and search; under 1360px the tabs move to their own row and wrap onto a second row when needed (nothing scrolls out of sight), and under 900px the band stops sticking. Breakpoints in use: 1360px, 960px, 900px, 600px.
 
 ## Elevation & Depth
 
@@ -289,9 +289,9 @@ Flat at rest. One shadow value exists, the Lift, and it means "picked up": cover
 
 ## Shapes
 
-Square corners everywhere (0px): portraits, covers, buttons, inputs, panels. The only round shapes are functional: the 40px play button (34px in captions), the 44px gold play badge on covers, round artist art in some lists, and the toggle switch. Portraits are 4:5, covers 1:1, superlative covers 112px square (84px under 600px). Images are never framed or outlined, except that the selected year or binge cover gets a 5px gold outline with 3px offset.
+Square corners everywhere (0px): portraits, covers, buttons, inputs, panels. The only round shapes are functional: the 40px play button (34px in captions), the 44px gold play badge on covers, round artist art in some lists, and the toggle switch. Portraits are 4:5, covers 1:1, superlative covers 112px square (84px under 600px). Images are never framed or outlined, except that the selected year cover gets a 5px gold outline with 3px offset, and the cover on the pulled-out Eras spine gets a 3px gold outline with 2px offset.
 
-Lines are always gold and always one or two sided: the spread gutter, 6px rules over the songs block and under hero headers, a 96px by 6px gold bar under page titles, 2px rules between superlatives, 3px under table headers and the active tab, 4px across the top of floating layers (tooltip, toast, player).
+Lines are always gold and always one or two sided: the spread gutter, 6px rules over the songs block and under hero headers, a 96px by 6px gold bar under page titles, 2px rules between superlatives, 3px under table headers and the active tab, 4px across the top of small floating layers (tooltip, toast, player) and 8px across the top of the full-screen filters window.
 
 ### Named Rules
 **The No Box Rule.** No element is enclosed on all four sides by a border. Separation is space, a grid, or a single gold rule.
@@ -315,8 +315,24 @@ Quiet and confident: square navy slabs or plain words.
 ### Navigation
 - **Masthead:** sticky Yearbook Navy band; brand in slab School Gold at 22px (18px under 900px).
 - **Tabs:** UI type in Masthead Muted with 6px vertical padding; hover turns white; the active tab is white with a 3px gold underline.
-- **Year picker:** a wrapping row of plain year words in Ink Secondary; the current year is navy, weight 800, with a 3px gold underline. No pills.
-- **Page turn:** previous and next years at the foot of a spread, small direction word over a headline-size slab year; hover adds a 4px gold underline.
+- **Year picker:** a row of plain year words in Ink Secondary; the current year is navy, weight 800, with a 3px gold underline. No pills. On Patterns it sits in a sticky year bar under the masthead (page ground, 3px gold line below) so it stays usable down the page; under 900px the bar becomes a "Year shown" select.
+- **Page turn:** previous and next years at the foot of a spread, a drawn gold arrow beside a headline-size slab year; hover nudges the arrow 4px. The Binges school-year page uses the same pattern at the top (left goes back in time, right goes forward, arrow keys too).
+- **Back link:** song and artist pages open with a gold drawn arrow and "Back" (navy, 800) that returns to the previous screen; with no history it reads "All songs and artists". A Binges school-year page opens with the same arrow and "All school years", back to the cover table.
+
+### Eras shelf
+- One navy volume (Spine `#1d2a5b`, night `#26346f`) per era on a 14px gold shelf board, flat at rest, separated by 6px gaps. Width follows the era's length (at least 62px, 58px under 900px where the shelf scrolls), height follows its hours.
+- Each spine carries its defining cover at the top, the era's artists (no "The", no "era") set up the spine in slab School Gold at 20px (17px for long names, up to two lines), and the years in pale blue-white (`#dfe4f6`) at 14px.
+- The open era's spine is pulled out: translateY -22px, rotated -5deg, with the Lift and a gold outline on its cover. Its page opens directly below. Hover lifts a spine 10px.
+- When the shelf is wider than the screen it scrolls sideways and shows a "Swipe the shelf sideways" line with a drawn two-way arrow.
+
+### Sub-era timeline (Binges school year)
+- A 96px band across Aug 1 to Jul 31 on a paper ground. Each sub-era is a navy block positioned by its dates, alternating Spine and Spine 2 so neighbours read apart, carrying its top song's 64px cover (narrow blocks shrink the cover to fit). A 6px gold rule runs under the band with month ticks below it.
+- Names and dates sit below the month row, each at its sub-era's start date: artists in slab navy at 16px, dates at 14px, up to 280px wide and wrapping. A 2px gold leader runs from the gold rule down to each label, so every name marks a date. When two labels would collide, the later one drops a row (58px).
+- Names are never cut off.
+- Under 900px the band turns vertical at true scale (1100px tall, no gaps), with month ticks down a 6px gold axis on the left and each sub-era's cover, name and dates inside its block.
+
+### Filters window
+- A modal dialog at 90vw by 90vh with an 8px gold top edge, the page dimmed behind it. A sticky header holds the title and a plain drawn X. It closes with the X, Escape, or a click on the dimmed area outside the window.
 
 ### Inputs / Fields
 - **Search (on the masthead):** white field, no border, square, 9px by 12px; focus is a 3px gold outline flush to the edge.
