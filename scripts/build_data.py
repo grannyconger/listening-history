@@ -332,6 +332,18 @@ meta = {
                'group': ru.get('group', 'personal'), 'short': ru.get('short', ''),
                'bit': ru['bit'], 'plays': rule_hits[ru['id']], 'hours': round(rule_secs[ru['id']] / 3600, 1)} for ru in rules],
 }
+# Spotify Client ID for the site's "Save to Spotify" button (PKCE login, no secret).
+# A Client ID is public by design. The Client Secret is never read here.
+def env_value(key):
+    if os.environ.get(key): return os.environ[key]
+    p = os.path.join(ROOT, '.env')
+    if os.path.exists(p):
+        for line in open(p):
+            k, _, v = line.strip().partition('=')
+            if k.strip() == key: return v.strip().strip('"').strip("'")
+    return ''
+if env_value('SPOTIFY_CLIENT_ID'):
+    meta['spotify_client_id'] = env_value('SPOTIFY_CLIENT_ID')
 if settings.get('publish_countries'):
     meta['countries'] = [{'code': c, 'name': COUNTRIES.get(c, (c,))[0], 'iso_n': COUNTRIES.get(c, (c, None))[1]} for c in CTRY]
     meta['vpn_runs'] = [{'country': v['country'], 'plays': v['plays'],

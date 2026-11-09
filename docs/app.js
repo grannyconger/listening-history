@@ -43,6 +43,7 @@ async function load() {
     getJSON('data/meta.json'), getJSON('data/library.json'), getJSON('data/plays.json'),
     getJSON('data/art.json').catch(() => ({})),
   ]);
+  getJSON('data/similar.json').then(sim => { D.sim = sim; memoStore.forEach((v, k) => { if (k.startsWith('mightLike')) memoStore.delete(k); }); if (/^#\/(connections|artist)/.test(location.hash)) route(); }).catch(() => {});
   D.meta = meta; D.lib = lib; D.art = Object.assign({ albums: {}, artists: {}, shows: {}, books: {} }, art);
   meta.reasons.forEach((r, i) => { REASON[r] = i; });
   if (!F.rules) F.rules = Object.fromEntries(meta.rules.map(r => [r.id, r.enabled]));
@@ -514,7 +515,8 @@ V.rediscover = () => {
       <p class="sub">Songs you played at least 15 times but not in the last year. Pick the year you loved them most.</p>
       ${eras.html}
       ${forgotten.length ? `<ol class="rank-list">${forgotten.slice(0, RD.shown).map(t => songRow(t, `${fmtInt(S.plays[t])} plays, last in ${monthName(S.last[t])}`)).join('')}</ol>
-        ${forgotten.length > RD.shown ? `<button class="btn ghost more" id="fmore">Show ${Math.min(20, forgotten.length - RD.shown)} more</button>` : ''}` : '<p class="muted">No forgotten favorites for this year.</p>'}
+        ${forgotten.length > RD.shown ? `<button class="btn ghost more" id="fmore">Show ${Math.min(20, forgotten.length - RD.shown)} more</button>` : ''}
+        ${mixTools(forgotten.slice(0, 50), `Forgotten favorites${RD.era === 'all' ? '' : ' from ' + RD.era}`, 'Songs I loved and stopped playing, from my listening history.')}` : '<p class="muted">No forgotten favorites for this year.</p>'}
     </section>
     <section class="block" id="week"></section>
     <section class="block">
@@ -604,6 +606,7 @@ V.binge = ([kS]) => {
       <p class="sub">${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])} was your biggest binge, ${fmtInt(lead.n)} plays. ${lead.share >= 0.5 ? `That's ${pct(lead.share)} of every play it has ever had.` : ''}${lead.bestN >= 3 ? ` On ${fmtDay(lead.bestDay)} alone you played it ${lead.bestN} times.` : ''}</p>
       <ol class="rank-list">${list.map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays, ${pct(s.share)} of all its plays`, i + 1)).join('')}</ol>
       ${cur.songs.length > BG.shown ? `<button class="btn ghost more" id="bmore">Show ${Math.min(10, cur.songs.length - BG.shown)} more</button>` : ''}
+      ${mixTools(cur.songs.slice(0, 30).map(s => s.t), `Binge: ${seasonLabel(cur.k)}`, `The songs I could not stop playing in ${seasonLabel(cur.k)}.`)}
     </section>
     <section class="block">
       <h2>Every season</h2>
@@ -689,13 +692,14 @@ V.artist = ([aiS]) => {
   const peak = [...monS].sort((a, b) => b[1] - a[1])[0];
   const topTracks = [...trP].sort((a, b) => b[1] - a[1]);
   view().innerHTML = `<section class="hero">${img(artistUrl(ai), L.artists[ai], 'lg round')}<div class="meta"><h1>${esc(L.artists[ai])}</h1>
-      <p>Your number ${rank} artist. You've listened for ${fmtH(secs)} since ${monthName(first)}, most of all in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.</p></div></section>
+      <p>Your number ${rank} artist. You've listened for ${fmtH(secs)} since ${monthName(first)}, most of all in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.</p>${artistStart(ai)}</div></section>
     <div class="tiles">${tile(fmtInt(plays), 'plays')}${tile(String(topTracks.length), 'different songs')}${tile(pct(done / started), 'played to the end')}${tile(monthName(last).replace(/^(\w{3})\w*/, '$1'), 'last played')}</div>
     <section class="block"><h2>Listening over time</h2><p class="sub">Hours per month</p><div class="chart" id="c-am"></div></section>
     <div class="grid g2">
       <section class="block"><h2>Top songs</h2><ol class="rank-list">${topTracks.slice(0, 15).map(([t, n], i) => songRow(t, fmtInt(n) + ' plays', i + 1)).join('')}</ol></section>
       <section class="block"><h2>Albums</h2>${rankList([...alS].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([al, s]) => ({ url: albumUrl(al), title: L.albums[al][0], value: fmtH(s) })))}</section>
-    </div>`;
+    </div>
+    ${artistLinksBlock(ai)}`;
   const m0 = Math.min(...monS.keys()), m1 = Math.max(...monS.keys());
   barChart($('#c-am'), { data: d3.range(m0, m1 + 1).map(mk => ({ key: mk, label: m1 - m0 < 24 ? MON[mk % 12] : (mk % 12 === 0 ? String(mk / 12) : ''), full: `${MON[mk % 12]} ${Math.floor(mk / 12)}`, value: (monS.get(mk) || 0) / 3600 })), fmt: v => fmtHnum(v * 3600) + ' h', labelEvery: 1, height: 220 });
   $('#c-am').querySelectorAll('svg text').forEach(t => { if (!t.textContent) t.remove(); });
@@ -717,9 +721,11 @@ V.track = ([tiS]) => {
   const peak = [...monP].sort((a, b) => b[1] - a[1])[0];
   view().innerHTML = `<section class="hero">${img(trackUrl(ti), name, 'lg')}<div class="meta"><h1>${esc(name)}</h1>
       <p>${artistLink(ai)}, from ${esc(L.albums[al][0])}</p>
-      <p>You first played it in ${monthName(P.t[first])} and have played it ${fmtInt(plays)} times since. It peaked in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.</p>
+      <p>You first played it in ${monthName(P.t[first])} and have played it ${fmtInt(plays)} times since. It peaked in ${MONTH[peak[0] % 12]} ${Math.floor(peak[0] / 12)}.${lifeNote(ti)}</p>
       <button class="btn" type="button" data-play="track:${esc(id)}">${PLAY_SVG} Play</button></div></section>
     <div class="tiles">${tile(fmtInt(plays), 'plays')}${tile(best.n + ' times', 'most in a row')}${tile(pct(done / started), 'played to the end')}${tile(monthName(P.t[last]).replace(/^(\w{3})\w*/, '$1'), 'last played')}</div>
+    ${trackStartBlock(ti)}
+    ${goesWithBlock(ti)}
     <section class="block"><h2>Plays per month</h2><div class="chart" id="c-tm"></div></section>
     <section class="block"><h2>Time of day</h2><p class="sub">Plays by hour</p><div class="chart" id="c-th"></div></section>`;
   const m0 = Math.min(...monP.keys()), m1 = Math.max(...monP.keys());
@@ -815,6 +821,588 @@ function podsBlock() {
   stackedBars($('#c-pb'), { keys: [{ key: 'p', label: 'Podcasts', color: 'var(--series-2)' }, { key: 'b', label: 'Audiobooks', color: 'var(--series-3)' }], data: ys.map(y => ({ key: y, label: String(y), values: { p: (py.get(y) || 0) / 3600, b: (by.get(y) || 0) / 3600 } })), fmt: v => fmtHnum(v * 3600) + ' h', height: 180 });
 }
 
+// ================================================================ CONNECTIONS AND ERAS
+// Everything below uses only your own plays (current filters), except "You might like",
+// which reads data/similar.json from scripts/fetch_similar.py (ListenBrainz).
+const SESSION_GAP = 1800; // seconds of silence that end a session
+
+/** Counted music plays (30 s or more) in time order, plus a session number for each */
+function musicSeq() {
+  return memo('musicSeq', () => {
+    const act = active(), q = [];
+    for (let p = 0; p < P.n; p++) if (act[p] && P.k[p] === 0 && P.s[p] >= 30) q.push(p);
+    const seq = Int32Array.from(q), sess = new Int32Array(seq.length);
+    let s = 0;
+    for (let j = 1; j < seq.length; j++) { const a = seq[j - 1], b = seq[j]; if (P.t[b] - (P.t[a] + P.s[a]) > SESSION_GAP) s++; sess[j] = s; }
+    return { seq, sess, nSess: s + 1 };
+  }, false);
+}
+/** Play times per track, grouped (CSR layout): times[off[t] .. off[t+1]) */
+function trackTimes() {
+  return memo('trackTimes', () => {
+    const { seq } = musicSeq(), n = D.lib.tracks.length, off = new Int32Array(n + 1);
+    for (const p of seq) off[P.i[p] + 1]++;
+    for (let t = 0; t < n; t++) off[t + 1] += off[t];
+    const fill = off.slice(0, n), times = new Float64Array(seq.length), at = new Int32Array(seq.length);
+    seq.forEach((p, j) => { const k = fill[P.i[p]]++; times[k] = P.t[p]; at[k] = j; });
+    return { off, times, at };
+  }, false);
+}
+const yearsText = (y0, y1) => (y0 === y1 ? String(y0) : `${y0} to ${y1}`);
+const yearOf = t => dateOf(t).getUTCFullYear();
+function listText(names) { return names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]; }
+function durText(sec) { const d = sec / 86400; if (d < 14) return `${Math.max(1, Math.round(d))} days`; if (d < 70) return `${Math.round(d / 7)} weeks`; return `${Math.round(d / 30.4)} months`; }
+
+// ---------------- songs played near each other
+/** Songs you often played within 3 songs of track ti, in the same session */
+function goesWith(ti, n = 10) {
+  const { seq, sess } = musicSeq(), T = trackTimes(), total = trackStatsAll().plays, W = 3;
+  const days = new Map(); // track -> Set(day)
+  for (let k = T.off[ti]; k < T.off[ti + 1]; k++) {
+    const j = T.at[k];
+    for (let d = -W; d <= W; d++) {
+      const m = j + d; if (!d || m < 0 || m >= seq.length || sess[m] !== sess[j]) continue;
+      const o = P.i[seq[m]]; if (o === ti) continue;
+      let s = days.get(o); if (!s) days.set(o, s = new Set()); s.add(P.day[seq[j]]);
+    }
+  }
+  const out = [];
+  const own = D.lib.tracks[ti][1];
+  days.forEach((s, o) => { if (s.size >= 2) { const ds = [...s]; out.push({ t: o, days: s.size, y0: yearOf(Math.min(...ds) * 86400), y1: yearOf(Math.max(...ds) * 86400), score: s.size / Math.sqrt(total[o] || 1) * (D.lib.tracks[o][1] === own ? 0.5 : 1) }); } });
+  return out.sort((a, b) => b.score - a.score).slice(0, n);
+}
+
+// ---------------- artist graph: artists played right after one another
+function artistGraph() {
+  return memo('artistGraph', () => {
+    const { seq, sess } = musicSeq(), edge = new Map(), last = new Map();
+    const A = D.lib.artists.length, deg = new Float64Array(A);
+    for (let j = 1; j < seq.length; j++) {
+      if (sess[j] !== sess[j - 1]) continue;
+      const a = P.artist[seq[j - 1]], b = P.artist[seq[j]]; if (a === b) continue;
+      const key = a < b ? a * A + b : b * A + a;
+      if (last.get(key) === sess[j]) continue; // count each pair once per session
+      last.set(key, sess[j]); edge.set(key, (edge.get(key) || 0) + 1); deg[a]++; deg[b]++;
+    }
+    const adj = new Map();
+    edge.forEach((c, key) => {
+      if (c < 2) return;
+      const a = Math.floor(key / A), b = key % A, sim = c / Math.sqrt(deg[a] * deg[b]);
+      for (const [x, y] of [[a, b], [b, a]]) { let l = adj.get(x); if (!l) adj.set(x, l = []); l.push([y, c, sim]); }
+    });
+    return { adj, deg, A, sim: (a, b) => { const c = edge.get(a < b ? a * A + b : b * A + a) || 0; return c ? c / Math.sqrt(deg[a] * deg[b]) : 0; } };
+  }, false);
+}
+const edgeCost = sim => -Math.log(Math.min(0.95, sim)) + 0.15; // strong links are short, every hop costs a little
+function minHeap() {
+  const h = [];
+  return {
+    get size() { return h.length; },
+    push(x) { h.push(x); let i = h.length - 1; while (i) { const pa = (i - 1) >> 1; if (h[pa][0] <= h[i][0]) break; [h[pa], h[i]] = [h[i], h[pa]]; i = pa; } },
+    pop() { const top = h[0], end = h.pop(); if (h.length) { h[0] = end; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return top; },
+  };
+}
+function shortestPath(from, to) {
+  const { adj } = artistGraph(), dist = new Map([[from, 0]]), prev = new Map(), heap = minHeap();
+  heap.push([0, from]);
+  while (heap.size) {
+    const [d, u] = heap.pop(); if (u === to) break; if (d > dist.get(u)) continue;
+    for (const [v, , sim] of adj.get(u) || []) { const nd = d + edgeCost(sim); if (nd < (dist.has(v) ? dist.get(v) : Infinity)) { dist.set(v, nd); prev.set(v, u); heap.push([nd, v]); } }
+  }
+  if (!dist.has(to)) return null;
+  const path = [to]; while (path[0] !== from) path.unshift(prev.get(path[0]));
+  return path;
+}
+/** For each hop of an artist path, the pair of songs you most often played back to back */
+function pathSongs(path) {
+  const { seq, sess } = musicSeq(), pos = new Map(path.map((a, i) => [a, i])), pairs = path.slice(1).map(() => new Map());
+  for (let j = 1; j < seq.length; j++) {
+    if (sess[j] !== sess[j - 1]) continue;
+    const pa = seq[j - 1], pb = seq[j], ia = pos.get(P.artist[pa]), ib = pos.get(P.artist[pb]);
+    if (ia == null || ib == null || Math.abs(ia - ib) !== 1) continue;
+    const lo = Math.min(ia, ib), [x, y] = ia < ib ? [P.i[pa], P.i[pb]] : [P.i[pb], P.i[pa]], key = x + ':' + y;
+    pairs[lo].set(key, (pairs[lo].get(key) || 0) + 1);
+  }
+  const blocks = path.map(() => ({ inn: [], out: [] }));
+  pairs.forEach((m, h) => {
+    [...m].sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(([key]) => { const [x, y] = key.split(':').map(Number); blocks[h].out.push(x); blocks[h + 1].inn.push(y); });
+  });
+  const out = [];
+  blocks.forEach(b => { // arrive on the top incoming song, leave on the top outgoing song
+    const order = [b.inn[0], b.inn[1], b.out[1], b.out[0]].filter(t => t != null);
+    order.forEach(t => { if (!out.includes(t)) out.push(t); });
+  });
+  return out;
+}
+/** Artists that sit between groups of your top artists (weighted betweenness) */
+function bridgeArtists() {
+  return memo('bridges', () => {
+    const st = allTime(), top = topN(st.artists.secs, 150), inTop = new Set(top), { adj } = artistGraph();
+    const nb = new Map(top.map(a => [a, (adj.get(a) || []).filter(([b]) => inTop.has(b))]));
+    const bc = new Map(top.map(a => [a, 0]));
+    for (const s of top) { // Brandes with Dijkstra
+      const S = [], pred = new Map(top.map(a => [a, []])), sigma = new Map(top.map(a => [a, 0])), dist = new Map();
+      sigma.set(s, 1); dist.set(s, 0); const Q = minHeap(), done = new Set(); Q.push([0, s]);
+      while (Q.size) {
+        const [d, v] = Q.pop(); if (done.has(v)) continue; done.add(v); S.push(v);
+        for (const [w, , sim] of nb.get(v)) {
+          const nd = d + edgeCost(sim), dw = dist.has(w) ? dist.get(w) : Infinity;
+          if (nd < dw - 1e-9) { dist.set(w, nd); Q.push([nd, w]); sigma.set(w, sigma.get(v)); pred.set(w, [v]); }
+          else if (Math.abs(nd - dw) < 1e-9) { sigma.set(w, sigma.get(w) + sigma.get(v)); pred.get(w).push(v); }
+        }
+      }
+      const delta = new Map(top.map(a => [a, 0]));
+      while (S.length) { const w = S.pop(); for (const v of pred.get(w)) delta.set(v, delta.get(v) + sigma.get(v) / sigma.get(w) * (1 + delta.get(w))); if (w !== s) bc.set(w, bc.get(w) + delta.get(w)); }
+    }
+    const g = artistGraph();
+    return [...bc].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([a]) => {
+      const near = nb.get(a).slice().sort((x, y) => y[2] - x[2]).slice(0, 6).map(x => x[0]);
+      let pair = null, best = Infinity;
+      for (let i = 0; i < near.length; i++) for (let k = i + 1; k < near.length; k++) { const s = g.sim(near[i], near[k]); if (s < best) { best = s; pair = [near[i], near[k]]; } }
+      return { a, pair };
+    });
+  }, false);
+}
+
+// ---------------- how things started
+/** Context of a play: what came right before it in the same session, and how it started */
+function playContext(j) {
+  const { seq, sess } = musicSeq(), p = seq[j], prev = j > 0 && sess[j - 1] === sess[j] ? seq[j - 1] : -1, rs = P.rs[p];
+  const by = prev >= 0 ? `${trackLink(P.i[prev])} by ${artistLink(P.artist[prev])}` : '';
+  if (prev < 0) return { prev, html: rs === REASON.clickrow ? 'You picked it to start listening.' : 'It started a listening session.' };
+  if (rs === REASON.clickrow) return { prev, html: `You picked it, right after ${by}.` };
+  if (rs === REASON.trackdone) return { prev, html: `It played by itself after ${by}.` };
+  if (rs === REASON.fwdbtn) return { prev, html: `It came on when you skipped ${by}.` };
+  return { prev, html: `It came right after ${by}.` };
+}
+/** First counted play of each artist: seq index */
+function firstPlayIdx() {
+  return memo('firstIdx', () => {
+    const { seq } = musicSeq(), a = new Int32Array(D.lib.artists.length).fill(-1);
+    for (let j = 0; j < seq.length; j++) { const x = P.artist[seq[j]]; if (a[x] < 0) a[x] = j; }
+    return a;
+  }, false);
+}
+function gatewayData() {
+  return memo('gateway', () => {
+    const st = allTime(), first = firstPlayIdx(), { seq } = musicSeq();
+    const favs = topN(st.artists.secs, 1e9, a => st.artists.secs[a] >= 10 * 3600 && first[a] >= 0);
+    const led = new Map();
+    const rows = favs.map(a => {
+      const j = first[a], ctx = playContext(j);
+      if (ctx.prev >= 0 && P.artist[ctx.prev] !== a) { const g = P.artist[ctx.prev]; if (!led.has(g)) led.set(g, []); led.get(g).push(a); }
+      return { a, j, p: seq[j], ctx };
+    });
+    const gateways = [...led].filter(([, l]) => l.length >= 2).sort((x, y) => y[1].length - x[1].length || st.artists.secs[y[0]] - st.artists.secs[x[0]]);
+    return { rows, gateways };
+  }, false);
+}
+
+// ---------------- eras: stretches of months with similar top artists
+const monthKeyLabel = mk => `${MON[mk % 12]} ${Math.floor(mk / 12)}`;
+function erasData() {
+  return memo('eras', () => {
+    const { seq } = musicSeq(), months = new Map();
+    for (const p of seq) { const mk = P.year[p] * 12 + P.mon[p]; let m = months.get(mk); if (!m) months.set(mk, m = new Map()); m.set(P.artist[p], (m.get(P.artist[p]) || 0) + P.s[p]); }
+    const unit = m => { const v = new Map(); let s = 0; m.forEach((x, a) => { const r = Math.sqrt(x); v.set(a, r); s += r * r; }); s = Math.sqrt(s) || 1; v.forEach((x, a) => v.set(a, x / s)); return v; };
+    const sum = (u, v) => { const o = new Map(u); v.forEach((x, a) => o.set(a, (o.get(a) || 0) + x)); return o; };
+    const cos = (u, v) => { let d = 0, nu = 0, nv = 0; const [s, l] = u.size < v.size ? [u, v] : [v, u]; s.forEach((x, a) => { const y = l.get(a); if (y) d += x * y; }); u.forEach(x => { nu += x * x; }); v.forEach(x => { nv += x * x; }); return d / Math.sqrt(nu * nv || 1); };
+    const keys = [...months.keys()].sort((a, b) => a - b).filter(mk => { let s = 0; months.get(mk).forEach(x => { s += x; }); return s >= 3 * 3600; });
+    if (!keys.length) return [];
+    let segs = keys.map(mk => ({ a: mk, b: mk, n: 1, v: unit(months.get(mk)) }));
+    const MIN = 3, THRESH = 0.88; // tuned on this history: about one era per 8 to 12 months
+    while (segs.length > 1) {
+      let bi = -1, bs = -Infinity;
+      for (let i = 0; i < segs.length - 1; i++) { const s = cos(segs[i].v, segs[i + 1].v) + (Math.min(segs[i].n, segs[i + 1].n) < MIN ? 1 : 0); if (s > bs) { bs = s; bi = i; } }
+      if (bs < THRESH) break;
+      const x = segs[bi], y = segs[bi + 1];
+      segs.splice(bi, 2, { a: x.a, b: y.b, n: x.n + y.n, v: sum(x.v, y.v) });
+    }
+    // era boundaries cover the whole timeline: each era runs until the next one starts
+    const lastMk = P.year[seq[seq.length - 1]] * 12 + P.mon[seq[seq.length - 1]];
+    segs.forEach((s, i) => { s.b = i < segs.length - 1 ? segs[i + 1].a - 1 : lastMk; });
+    segs[0].a = P.year[seq[0]] * 12 + P.mon[seq[0]]; // quiet early months belong to the first era
+    const total = trackStatsAll().plays, life = allTime().artists.secs, eras = segs.map(s => ({ a: s.a, b: s.b, tr: new Map(), ar: new Map(), secs: 0 }));
+    const idx = mk => { let lo = 0, hi = eras.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (eras[m].a <= mk) lo = m; else hi = m - 1; } return lo; };
+    for (const p of seq) {
+      const e = eras[idx(P.year[p] * 12 + P.mon[p])]; e.secs += P.s[p];
+      e.tr.set(P.i[p], (e.tr.get(P.i[p]) || 0) + 1); e.ar.set(P.artist[p], (e.ar.get(P.artist[p]) || 0) + P.s[p]);
+    }
+    const first = firstSeen('artist');
+    return eras.map(e => {
+      const songs = [...e.tr].filter(([, c]) => c >= 3).map(([t, c]) => ({ t, n: c, share: c / (total[t] || c), score: c * c / (total[t] || c) })).sort((x, y) => y.score - x.score);
+      const artists = [...e.ar].sort((x, y) => y[1] - x[1]);
+      const signature = [...e.ar].map(([a, s]) => [a, s * s / (life[a] || s)]).sort((x, y) => y[1] - x[1]);
+      const lead = [signature[0][0]]; if (signature[1] && signature[1][1] > signature[0][1] * 0.45) lead.push(signature[1][0]);
+      const newFavs = artists.filter(([a]) => first[a] >= Date.UTC(Math.floor(e.a / 12), e.a % 12, 1) / 1000 && first[a] < Date.UTC(Math.floor((e.b + 1) / 12), (e.b + 1) % 12, 1) / 1000 && life[a] >= 3 * 3600).map(([a]) => a);
+      return { a: e.a, b: e.b, secs: e.secs, songs, artists, lead, newFavs, months: e.b - e.a + 1 };
+    });
+  }, false);
+}
+const eraName = e => `The ${listText(e.lead.map(a => D.lib.artists[a]))} era`;
+const eraRange = e => (e.a === e.b ? monthKeyLabel(e.a) : `${monthKeyLabel(e.a)} to ${monthKeyLabel(e.b)}`);
+
+// ---------------- lifecycles: lasting favorites, short obsessions, slow burns
+function lifecycles() {
+  return memo('life', () => {
+    const T = trackTimes(), n = D.lib.tracks.length, lasting = [], burst = [], slow = [];
+    for (let t = 0; t < n; t++) {
+      const o = T.off[t], c = T.off[t + 1] - o; if (c < 20) continue;
+      const ts = T.times.subarray(o, o + c), yc = new Map();
+      ts.forEach(x => { const y = yearOf(x); yc.set(y, (yc.get(y) || 0) + 1); });
+      const ys = [...yc].filter(([, k]) => k >= 2).map(([y]) => y).sort((a, b) => a - b);
+      if (ys.length >= 5) lasting.push({ t, c, years: ys.length, y0: ys[0], y1: ys[ys.length - 1] });
+      const m = Math.ceil(c * 0.7); let win = Infinity, at = 0;
+      for (let i = 0; i + m - 1 < c; i++) { const w = ts[i + m - 1] - ts[i]; if (w < win) { win = w; at = i; } }
+      if (c >= 25 && win <= 42 * 86400) burst.push({ t, c, m, win, start: ts[at] });
+      if (c >= 30) {
+        const firstT = ts[0], early = ts.filter(x => x < firstT + 90 * 86400).length;
+        const bestY = [...yc].sort((a, b) => b[1] - a[1])[0][0];
+        if (early <= 3 && bestY - yearOf(firstT) >= 1) slow.push({ t, c, firstT, bestY });
+      }
+    }
+    lasting.sort((a, b) => b.years - a.years || b.c - a.c); burst.sort((a, b) => b.c - a.c); slow.sort((a, b) => b.c - a.c);
+    return { lasting, burst, slow };
+  }, false);
+}
+
+// ---------------- ListenBrainz similar artists
+const normName = s => String(s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+function nameIndex() {
+  return memo('nameIdx', () => {
+    const st = itemStats('all'), m = new Map();
+    D.lib.artists.forEach((nm, a) => { const k = normName(nm), cur = m.get(k); if (cur == null || st.artists.secs[a] > st.artists.secs[cur]) m.set(k, a); });
+    return m;
+  }, false);
+}
+/** Artists you have never played, ranked by how similar they are to the artists you play most */
+function youMightLike() {
+  return memo('mightLike', () => {
+    const S = D.sim; if (!S || !S.artists) return [];
+    const st = allTime(), names = nameIndex(), agg = new Map();
+    for (const [aS, v] of Object.entries(S.artists)) {
+      const a = +aS, h = st.artists.secs[a] / 3600; if (!(h > 0) || !v.similar.length) continue;
+      const w = Math.sqrt(h), max = v.similar[0][2] || 1;
+      v.similar.forEach(([nm, mb, sc]) => {
+        if (names.has(normName(nm)) || /^\[.*\]$|^various artists$/i.test(nm)) return; // played at some point, or a placeholder like [theatre]
+        let o = agg.get(mb); if (!o) agg.set(mb, o = { name: nm, mb, score: 0, from: [] });
+        const c = w * sc / max; o.score += c; o.from.push([a, c]);
+      });
+    }
+    return [...agg.values()].filter(o => o.from.length >= 2).sort((x, y) => y.score - x.score).map(o => ({ ...o, from: o.from.sort((x, y) => y[1] - x[1]).map(x => x[0]) }));
+  }, false);
+}
+const spotifySearch = name => `https://open.spotify.com/search/${encodeURIComponent(name)}`;
+function newArtistList(items) {
+  return `<ol class="rank-list">${items.map(o => `<li>${img(D.sim.photos && D.sim.photos[o.mb], o.name, 'sm round')}<div class="who"><div><div class="t"><a href="${esc(spotifySearch(o.name))}" target="_blank" rel="noopener">${esc(o.name)}</a></div><div class="a">Similar to ${listText(o.from.slice(0, 3).map(a => artistLink(a)))}</div></div></div><a class="v" href="${esc(spotifySearch(o.name))}" target="_blank" rel="noopener">Find on Spotify</a></li>`).join('')}</ol>`;
+}
+
+// ---------------- playlists: save to Spotify or copy links
+const MIX = new Map(); let mixSeq = 0;
+function mixTools(tracks, name, description) {
+  const ids = [...new Set(tracks)].map(t => D.lib.tracks[t][3]).filter(Boolean);
+  if (ids.length < 2) return '';
+  const id = 'mix' + (++mixSeq); MIX.set(id, { ids, name, description });
+  const canSave = !!D.meta.spotify_client_id;
+  return `<div class="toolbar mix-tools" data-mix="${id}">${canSave ? `<button class="btn" type="button" data-mix-act="save">${SPOTIFY_SVG} Save as a Spotify playlist</button>` : ''}<button class="btn ghost" type="button" data-mix-act="copy">Copy ${ids.length} song links</button><span class="mix-msg muted" role="status" aria-live="polite"></span></div>`;
+}
+const SPOTIFY_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 9.5c3.4-1 7-.7 10 1M7.6 12.8c2.8-.8 5.6-.5 8 .9M8.2 15.9c2.2-.6 4.3-.4 6.1.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+async function mixAction(btn) {
+  const box = btn.closest('[data-mix]'), mix = MIX.get(box.dataset.mix), msg = box.querySelector('.mix-msg');
+  if (!mix) return;
+  if (btn.dataset.mixAct === 'copy') {
+    const text = mix.ids.map(id => `https://open.spotify.com/track/${id}`).join('\n');
+    try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied. In the Spotify desktop app, open a playlist and paste.'; }
+    catch (e) { msg.textContent = 'Copying is blocked in this browser.'; }
+    return;
+  }
+  btn.disabled = true; msg.textContent = 'Saving to Spotify';
+  try { const url = await spotify.save(mix); msg.innerHTML = url ? `Saved. <a href="${esc(url)}" target="_blank" rel="noopener">Open the playlist in Spotify</a>` : ''; }
+  catch (e) { msg.textContent = e.message; }
+  btn.disabled = false;
+}
+
+// Spotify login with PKCE (no client secret), then create a private playlist and add the songs.
+const spotify = {
+  redirect: () => location.origin + location.pathname,
+  token: () => store.get('lh-spotify', null),
+  async login(pending) {
+    if (location.hostname === 'localhost') throw new Error('Spotify only accepts 127.0.0.1. Open this page at http://127.0.0.1' + (location.port ? ':' + location.port : '') + location.pathname + ' and try again.');
+    const rnd = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[b % 66]).join('');
+    const verifier = rnd(64), state = rnd(16);
+    const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    const challenge = btoa(String.fromCharCode(...hash)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    try { sessionStorage.setItem('lh-spotify-auth', JSON.stringify({ verifier, state, pending, hash: location.hash })); } catch (e) { throw new Error('This browser blocks storage, so Spotify login cannot work here.'); }
+    location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({ response_type: 'code', client_id: D.meta.spotify_client_id, scope: 'playlist-modify-private playlist-modify-public', redirect_uri: this.redirect(), code_challenge_method: 'S256', code_challenge: challenge, state });
+    return new Promise(() => {}); // the page is leaving
+  },
+  async tokenRequest(params) {
+    const r = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: D.meta.spotify_client_id, ...params }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error('Spotify login failed (' + (j.error_description || j.error || r.status) + ').');
+    const old = this.token() || {};
+    const tok = { access: j.access_token, refresh: j.refresh_token || old.refresh, exp: Date.now() + (j.expires_in - 60) * 1000 };
+    store.set('lh-spotify', tok); return tok;
+  },
+  async access() {
+    let tok = this.token();
+    if (tok && tok.exp > Date.now()) return tok.access;
+    if (tok && tok.refresh) { try { tok = await this.tokenRequest({ grant_type: 'refresh_token', refresh_token: tok.refresh }); return tok.access; } catch (e) { store.set('lh-spotify', null); } }
+    return null;
+  },
+  async api(path, body) {
+    const r = await fetch('https://api.spotify.com/v1' + path, { method: 'POST', headers: { Authorization: 'Bearer ' + await this.access(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (r.status === 401) { store.set('lh-spotify', null); throw Object.assign(new Error('relogin'), { relogin: true }); }
+    if (r.status === 403) throw new Error('Spotify refused. Only accounts the site owner has added to the Spotify app can save playlists from this site.');
+    if (!r.ok) throw Object.assign(new Error(`Spotify could not save the playlist (error ${r.status}).`), { status: r.status });
+    return r.json().catch(() => ({}));
+  },
+  async save(mix) {
+    if (!(await this.access())) return this.login(mix);
+    try {
+      const pl = await this.api('/me/playlists', { name: mix.name, description: mix.description || 'Made from my listening history', public: false });
+      const uris = mix.ids.map(id => 'spotify:track:' + id);
+      for (let i = 0; i < uris.length; i += 100) {
+        const chunk = { uris: uris.slice(i, i + 100) };
+        try { await this.api(`/playlists/${pl.id}/items`, chunk); }
+        catch (e) { if (e.status === 404) await this.api(`/playlists/${pl.id}/tracks`, chunk); else throw e; }
+      }
+      return (pl.external_urls && pl.external_urls.spotify) || `https://open.spotify.com/playlist/${pl.id}`;
+    } catch (e) { if (e.relogin) return this.login(mix); throw e; }
+  },
+  /** Back from Spotify's login page: finish login, save the waiting playlist, restore the page */
+  async finishLogin() {
+    const q = new URLSearchParams(location.search); if (!q.has('code') && !q.has('error')) return;
+    let saved = null; try { saved = JSON.parse(sessionStorage.getItem('lh-spotify-auth')); sessionStorage.removeItem('lh-spotify-auth'); } catch (e) { /* storage unavailable */ }
+    history.replaceState(null, '', location.pathname + ((saved && saved.hash) || location.hash));
+    if (!saved || q.get('state') !== saved.state) return toast('Spotify login did not finish. Try again.');
+    if (q.has('error')) return toast('Spotify login was cancelled.');
+    try {
+      await this.tokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: this.redirect(), code_verifier: saved.verifier });
+      if (saved.pending) { toast('Saving to Spotify'); const url = await this.save(saved.pending); toast(`Saved "${esc(saved.pending.name)}". <a href="${esc(url)}" target="_blank" rel="noopener">Open it in Spotify</a>`, 12000); }
+    } catch (e) { toast(esc(e.message), 12000); }
+  },
+};
+let toastTimer = null;
+function toast(html, ms = 6000) { const t = $('#toast'); t.innerHTML = html; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms); }
+
+// ---------------- additions to the song and artist pages
+function lifeNote(ti) {
+  const L = lifecycles(), f = (arr) => arr.find(r => r.t === ti);
+  const a = f(L.lasting), b = f(L.burst), c = f(L.slow);
+  if (a) return ` It's one of your lasting favorites, played in ${a.years} different years.`;
+  if (c) return ` It grew on you: you first heard it in ${monthName(c.firstT)} but played it most in ${c.bestY}.`;
+  if (b) return ` It was a short obsession: ${b.m} of its ${b.c} plays came within ${durText(b.win)}.`;
+  return '';
+}
+function trackStartBlock(ti) {
+  const T = trackTimes(); if (T.off[ti] === T.off[ti + 1]) return '';
+  const j = T.at[T.off[ti]], p = musicSeq().seq[j];
+  return `<section class="block"><h2>How it started</h2><p class="lead-text">You first played it on ${fmtDate(P.t[p])} at ${fmtTime(P.t[p])}. ${playContext(j).html}</p></section>`;
+}
+function goesWithBlock(ti) {
+  const gw = goesWith(ti, 10); if (!gw.length) return '';
+  const name = D.lib.tracks[ti][0];
+  return `<section class="block"><h2>Goes with</h2><p class="sub">Songs you often played within a few songs of this one. Rare songs that keep showing up next to it rank higher than your all-time hits.</p>
+    <ol class="rank-list">${gw.map((g, i) => songRow(g.t, `Together on ${g.days} days, ${yearsText(g.y0, g.y1)}`, i + 1)).join('')}</ol>
+    ${mixTools([ti].concat(gw.map(g => g.t)), `Goes with ${name}`, `Songs I played next to ${name}, from my listening history.`)}</section>`;
+}
+function artistStart(ai) {
+  const j = firstPlayIdx()[ai]; if (j < 0) return '';
+  const p = musicSeq().seq[j];
+  return `<p>The first song you played was ${trackLink(P.i[p])}, on ${fmtDate(P.t[p])}. ${playContext(j).html}</p>`;
+}
+function artistLinksBlock(ai) {
+  const g = artistGraph(), st = allTime();
+  const near = (g.adj.get(ai) || []).filter(([, c]) => c >= 3).sort((x, y) => y[2] - x[2]).slice(0, 8);
+  const sim = D.sim && D.sim.artists && D.sim.artists[ai];
+  let simHtml = '';
+  if (sim && sim.similar.length) {
+    const names = nameIndex(), rows = sim.similar.slice(0, 10).map(([nm, mb]) => {
+      const a = names.get(normName(nm));
+      if (a != null && st.artists.secs[a] > 0) return `<li>${img(artistUrl(a), nm, 'sm round')}<div class="who"><div><div class="t">${artistLink(a)}</div></div></div><span class="v">${fmtH(st.artists.secs[a])}</span></li>`;
+      return `<li>${img(D.sim.photos && D.sim.photos[mb], nm, 'sm round')}<div class="who"><div><div class="t"><a href="${esc(spotifySearch(nm))}" target="_blank" rel="noopener">${esc(nm)}</a></div><div class="a">${a != null ? 'Hidden by your filters' : 'Never played'}</div></div></div><a class="v" href="${esc(spotifySearch(nm))}" target="_blank" rel="noopener">Find on Spotify</a></li>`;
+    });
+    simHtml = `<section class="block"><h2>Similar artists</h2><p class="sub">From ListenBrainz, an open music database.</p><ol class="rank-list">${rows.join('')}</ol></section>`;
+  }
+  if (!near.length && !simHtml) return '';
+  return `<div class="grid g2">
+    ${near.length ? `<section class="block"><h2>Played next to</h2><p class="sub">Artists you often played right before or after ${esc(D.lib.artists[ai])}.</p>${rankList(near.map(([b, c]) => ({ url: artistUrl(b), title: D.lib.artists[b], titleHtml: artistLink(b), value: `${fmtInt(c)} sessions`, round: true })))}</section>` : '<div></div>'}
+    ${simHtml}</div>`;
+}
+
+// ---------------- Eras page
+const EZ = { month: null, shown: { lasting: 8, burst: 8, slow: 8 } };
+V.eras = ([aS]) => {
+  const eras = erasData();
+  if (!eras.length) { view().innerHTML = `<section class="page-intro"><h1>Eras</h1><p>${esc(filterNote())} There is not enough listening to find eras.</p></section>`; return; }
+  const cur = eras.find(e => e.a === +aS) || eras[eras.length - 1];
+  const t0 = eras[0].a, t1 = eras[eras.length - 1].b + 1, span = t1 - t0;
+  const lead = cur.songs[0];
+  const yearTicks = d3.range(Math.ceil(t0 / 12), Math.floor(t1 / 12) + 1).filter(y => y * 12 >= t0 && y * 12 < t1);
+  view().innerHTML = `
+    <section class="page-intro"><h1>Eras</h1><p>Your listening, split into eras. A new era starts when the artists you play month to month change. Pick an era to see the songs that defined it.</p></section>
+    <section class="block era-detail" aria-labelledby="eraH">
+      <h2 id="eraH">${esc(eraName(cur))}</h2>
+      <p class="sub">${esc(eraRange(cur))}, ${cur.months} ${cur.months === 1 ? 'month' : 'months'} and ${fmtInt(cur.secs / 3600)} hours of music.${lead ? ` The song that defined it was ${trackLink(lead.t)} by ${artistLink(D.lib.tracks[lead.t][1])}, played ${fmtInt(lead.n)} times${lead.share >= 0.5 ? `, ${pct(lead.share)} of all its plays ever` : ''}.` : ''}</p>
+      <div class="chapter-grid">
+        <div>
+          <h3>Songs that defined it</h3>
+          <p class="sub">Played often in this era, and much less at any other time.</p>
+          <ol class="rank-list">${cur.songs.slice(0, 12).map((s, i) => songRow(s.t, `${fmtInt(s.n)} plays`, i + 1)).join('')}</ol>
+          ${mixTools(cur.songs.slice(0, 30).map(s => s.t), `${eraName(cur)} (${yearsText(Math.floor(cur.a / 12), Math.floor(cur.b / 12))})`, `The songs that defined ${eraRange(cur)} in my listening history.`)}
+        </div>
+        <div>
+          <h3>Top artists</h3>
+          ${rankList(cur.artists.slice(0, 5).map(([a, s]) => ({ url: artistUrl(a), title: D.lib.artists[a], titleHtml: artistLink(a), value: fmtH(s), round: true })))}
+          ${cur.newFavs.length ? `<h3 class="sub-head">New artists you went on to love</h3><p class="muted">${listText(cur.newFavs.slice(0, 6).map(artistLink))}</p>` : ''}
+        </div>
+      </div>
+    </section>
+    <section class="block" aria-labelledby="eraAll">
+      <h2 id="eraAll">Every era</h2>
+      <p class="sub">${eras.length} eras since ${monthKeyLabel(t0)}. The bar shows where each one falls.</p>
+      <p class="note">${esc(filterNote())}</p>
+      <ol class="era-list">${eras.slice().reverse().map(e => { const s = e.songs[0]; return `<li><a class="era-row ${e === cur ? 'on' : ''}" href="#/eras/${e.a}" ${e === cur ? 'aria-current="true"' : ''}>
+        ${img(s ? trackUrl(s.t) : artistUrl(e.lead[0]), eraName(e), 'sm')}
+        <span class="era-txt"><span class="t">${esc(eraName(e))}</span><span class="a">${esc(eraRange(e))}${s ? `, ${esc(D.lib.tracks[s.t][0])}` : ''}</span></span>
+        <span class="era-line" aria-hidden="true"><i style="left:${((e.a - t0) / span * 100).toFixed(2)}%;width:${Math.max(0.8, e.months / span * 100).toFixed(2)}%"></i>${yearTicks.map(y => `<b style="left:${((y * 12 - t0) / span * 100).toFixed(2)}%"></b>`).join('')}</span>
+      </a></li>`; }).join('')}</ol>
+      <div class="era-row era-axis-row" aria-hidden="true"><span></span><span></span><span class="era-axis">${yearTicks.filter((y, i) => i % 2 === 0).map(y => `<span style="left:${((y * 12 - t0) / span * 100).toFixed(2)}%">${y}</span>`).join('')}</span></div>
+    </section>
+    <section class="block" id="life"></section>
+    <section class="block" id="month"></section>`;
+  lifeBlock(); monthBlock();
+  if (aS) requestAnimationFrame(() => { const el = $('.era-detail'); if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView(); });
+};
+function lifeBlock() {
+  const L = lifecycles(), sh = EZ.shown;
+  const col = (key, title, sub, rows, detail, mixName) => `<div><h3 class="sub-head">${title}</h3><p class="sub">${sub}</p>
+    ${rows.length ? `<ol class="rank-list">${rows.slice(0, sh[key]).map(r => songRow(r.t, detail(r))).join('')}</ol>
+    ${rows.length > sh[key] ? `<button class="btn ghost more" data-life="${key}">Show more</button>` : ''}
+    ${mixTools(rows.slice(0, 40).map(r => r.t), mixName, '')}` : '<p class="muted">None with the current filters.</p>'}</div>`;
+  $('#life').innerHTML = `<h2>Lasting favorites and short obsessions</h2>
+    <p class="sub">Some songs stay with you for years. Others take over for a few weeks and then disappear.</p>
+    <div class="grid g2">
+      ${col('lasting', 'Lasting favorites', 'Played in at least 5 different years.', L.lasting, r => `${r.years} years, ${yearsText(r.y0, r.y1)}`, 'Lasting favorites')}
+      ${col('burst', 'Short obsessions', 'Most of their plays came within 6 weeks.', L.burst, r => `${r.m} of ${r.c} plays in ${durText(r.win)}, ${monthName(r.start)}`, 'Short obsessions')}
+    </div>
+    ${col('slow', 'Songs that grew on you', 'You heard them early but only started playing them a lot a year or more later.', L.slow, r => `First heard ${monthName(r.firstT)}, most plays in ${r.bestY}`, 'Songs that grew on me')}`;
+  $('#life').querySelectorAll('[data-life]').forEach(b => b.onclick = () => { sh[b.dataset.life] += 10; lifeBlock(); });
+}
+function monthBlock() {
+  const { seq } = musicSeq(), lastMk = P.year[seq[seq.length - 1]] * 12 + P.mon[seq[seq.length - 1]], firstMk = P.year[seq[0]] * 12 + P.mon[seq[0]];
+  if (EZ.month == null) EZ.month = lastMk - 12;
+  EZ.month = Math.max(firstMk, Math.min(lastMk, EZ.month));
+  const mk = EZ.month, total = trackStatsAll().plays, first = firstSeen('artist'), life = allTime().artists.secs;
+  const tr = new Map(), ar = new Map(), monS = new Map();
+  let secs = 0;
+  for (const p of seq) {
+    const k = P.year[p] * 12 + P.mon[p];
+    if (Math.floor(k / 12) === Math.floor(mk / 12)) monS.set(k, (monS.get(k) || 0) + P.s[p]);
+    if (k !== mk) continue;
+    secs += P.s[p]; tr.set(P.i[p], (tr.get(P.i[p]) || 0) + 1); ar.set(P.artist[p], (ar.get(P.artist[p]) || 0) + P.s[p]);
+  }
+  const yearAvg = [...monS.values()].reduce((s, v) => s + v, 0) / (monS.size || 1);
+  const top = [...tr].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const only = [...tr].filter(([, c]) => c >= 3).map(([t, c]) => [t, c, c * c / (total[t] || c)]).sort((a, b) => b[2] - a[2]).filter(([t]) => !top.slice(0, 3).some(x => x[0] === t)).slice(0, 5);
+  const m0 = Date.UTC(Math.floor(mk / 12), mk % 12, 1) / 1000, m1 = Date.UTC(Math.floor((mk + 1) / 12), (mk + 1) % 12, 1) / 1000;
+  const newA = [...ar.keys()].filter(a => first[a] >= m0 && first[a] < m1).sort((a, b) => life[b] - life[a]).slice(0, 5);
+  const ys = d3.range(Math.floor(firstMk / 12), Math.floor(lastMk / 12) + 1);
+  const cmp = !secs ? '' : secs > yearAvg * 1.25 ? `, more than a typical month that year (${fmtInt(yearAvg / 3600)} hours)` : secs < yearAvg * 0.75 ? `, less than a typical month that year (${fmtInt(yearAvg / 3600)} hours)` : ', about a typical month for that year';
+  $('#month').innerHTML = `<h2>Pick any month</h2>
+    <p class="sub">See what you were playing in any month, and what made it different.</p>
+    <div class="toolbar">
+      <label><span class="sr-only">Month</span><select id="mSel" class="input select">${MONTH.map((m, i) => `<option value="${i}" ${i === mk % 12 ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
+      <label><span class="sr-only">Year</span><select id="ySel" class="input select">${ys.map(y => `<option ${y === Math.floor(mk / 12) ? 'selected' : ''}>${y}</option>`).join('')}</select></label>
+      <button class="btn ghost" type="button" id="mPrev" ${mk <= firstMk ? 'disabled' : ''}>Previous month</button>
+      <button class="btn ghost" type="button" id="mNext" ${mk >= lastMk ? 'disabled' : ''}>Next month</button>
+    </div>
+    <h3 class="month-head">${MONTH[mk % 12]} ${Math.floor(mk / 12)}</h3>
+    ${secs ? `<p class="sub">${fmtH(secs)} of music${cmp}.</p>
+    <div class="grid g2">
+      <div><h3 class="sub-head">Played most</h3><ol class="rank-list">${top.map(([t, c], i) => songRow(t, `${c} plays`, i + 1)).join('')}</ol></div>
+      <div><h3 class="sub-head">Mostly that month</h3>${only.length ? `<ol class="rank-list">${only.map(([t, c]) => songRow(t, `${c} of ${total[t]} plays ever`)).join('')}</ol>` : '<p class="muted">Nothing stood out.</p>'}
+      ${newA.length ? `<h3 class="sub-head">Heard for the first time</h3>${rankList(newA.map(a => ({ url: artistUrl(a), title: D.lib.artists[a], titleHtml: artistLink(a), value: `${fmtH(life[a])} since`, round: true })))}` : ''}</div>
+    </div>` : '<p class="muted">No music this month with the current filters.</p>'}`;
+  const set = v => { EZ.month = v; monthBlock(); };
+  $('#mSel').onchange = () => set(Math.floor(mk / 12) * 12 + +$('#mSel').value);
+  $('#ySel').onchange = () => set(+$('#ySel').value * 12 + mk % 12);
+  $('#mPrev').onclick = () => set(mk - 1); $('#mNext').onclick = () => set(mk + 1);
+}
+
+// ---------------- Connections page
+const CX = { from: null, to: null, found: 15, like: 12 };
+V.connections = () => {
+  const st = allTime(), G = gatewayData();
+  const names = topN(st.artists.secs, 3000);
+  if (CX.from == null || !(st.artists.secs[CX.from] > 0) || CX.to == null || !(st.artists.secs[CX.to] > 0)) {
+    const ys = storyYears(), a = ys.length ? topN(itemStats(ys[0]).artists.secs, 1)[0] : names[0];
+    CX.from = a ?? names[0];
+    // start with a pair that has artists in between, so the first playlist shows what the tool does
+    const pool = names.slice(0, 80).filter(x => x !== CX.from), lens = pool.map(x => (shortestPath(CX.from, x) || []).length);
+    const best = Math.max(...lens); CX.to = pool[lens.findIndex(l => l === Math.min(best, 4))] ?? names[1];
+  }
+  const like = youMightLike(), bridges = bridgeArtists();
+  view().innerHTML = `
+    <section class="page-intro"><h1>Connections</h1><p>How your artists link up: the songs you played back to back, how you found your favorites, and new artists close to them.</p></section>
+    <nav class="jump" aria-label="On this page"><a href="#c-path" data-to="c-path">From one artist to another</a><a href="#c-found" data-to="c-found">How you found them</a><a href="#c-bridge" data-to="c-bridge">Bridges</a>${like.length ? '<a href="#c-new" data-to="c-new">You might like</a>' : ''}</nav>
+    <section class="block" id="c-path">
+      <h2>From one artist to another</h2>
+      <p class="sub">Pick two artists. You get a playlist that travels between them, using songs you really played back to back.</p>
+      <form class="pathform" id="pathForm">
+        <label><span class="lbl">From</span><input class="input" id="pFrom" list="artistNames" value="${esc(D.lib.artists[CX.from])}" autocomplete="off"></label>
+        <label><span class="lbl">To</span><input class="input" id="pTo" list="artistNames" value="${esc(D.lib.artists[CX.to])}" autocomplete="off"></label>
+        <button class="btn" type="submit">Make the playlist</button>
+        <button class="btn ghost" type="button" id="pRand">Surprise me</button>
+      </form>
+      <datalist id="artistNames">${names.map(a => `<option value="${esc(D.lib.artists[a])}">`).join('')}</datalist>
+      <div id="pathOut" aria-live="polite"></div>
+    </section>
+    <section class="block" id="c-found">
+      <h2>How you found your favorite artists</h2>
+      <p class="sub">The first song you played by each artist you went on to hear for 10 hours or more, and what you were playing right before.</p>
+      <ol class="rank-list found">${G.rows.slice(0, CX.found).map(r => { const t = P.i[r.p], [name, , , id] = D.lib.tracks[t]; return `<li>${img(artistUrl(r.a), D.lib.artists[r.a], 'sm round')}<div class="who"><div><div class="t">${artistLink(r.a)} <span class="muted">${fmtH(st.artists.secs[r.a])}</span></div><div class="a">First song: ${trackLink(t)}, ${fmtDate(P.t[r.p])}. ${r.ctx.html}</div></div></div>${playBtn('track', id, name)}</li>`; }).join('')}</ol>
+      ${G.rows.length > CX.found ? `<button class="btn ghost more" id="foundMore">Show more</button>` : ''}
+      ${G.gateways.length ? `<h3 class="sub-head">Artists that led you to others</h3><p class="sub">You were playing these artists right before you first heard several later favorites.</p>
+        ${rankList(G.gateways.slice(0, 6).map(([g, l]) => ({ url: artistUrl(g), title: D.lib.artists[g], titleHtml: artistLink(g), subHtml: `Led to ${listText(l.slice(0, 4).map(artistLink))}${l.length > 4 ? ` and ${l.length - 4} more` : ''}`, value: `${l.length} artists`, round: true })))}` : ''}
+    </section>
+    <section class="block" id="c-bridge">
+      <h2>Bridge artists</h2>
+      <p class="sub">Among your top 150 artists, these sit between groups you rarely play together. They show up most often on the shortest path from one artist to another.</p>
+      ${bridges.length ? rankList(bridges.map(({ a, pair }) => ({ url: artistUrl(a), title: D.lib.artists[a], titleHtml: artistLink(a), subHtml: pair ? `Links ${artistLink(pair[0])} and ${artistLink(pair[1])}` : '', value: fmtH(st.artists.secs[a]), round: true }))) : '<p class="muted">Not enough listening to find bridges.</p>'}
+    </section>
+    ${like.length ? `<section class="block" id="c-new">
+      <h2>You might like</h2>
+      <p class="sub">Artists you have never played that are similar to several of your favorites. Similar artists come from ListenBrainz, an open music database, so a few matches may be off.</p>
+      ${newArtistList(like.slice(0, CX.like))}
+      ${like.length > CX.like ? `<button class="btn ghost more" id="likeMore">Show more</button>` : ''}
+    </section>` : ''}`;
+  view().querySelectorAll('[data-to]').forEach(a => a.onclick = e => { e.preventDefault(); jumpTo(a.dataset.to); });
+  const byName = new Map(); names.slice().reverse().forEach(a => byName.set(D.lib.artists[a].toLowerCase(), a));
+  const run = () => {
+    const f = byName.get($('#pFrom').value.trim().toLowerCase()), t = byName.get($('#pTo').value.trim().toLowerCase());
+    if (f == null || t == null) { $('#pathOut').innerHTML = `<p class="muted">Pick both artists from the list.</p>`; return; }
+    CX.from = f; CX.to = t; pathBlock(f, t);
+  };
+  $('#pathForm').onsubmit = e => { e.preventDefault(); run(); };
+  $('#pRand').onclick = () => { const pool = names.slice(0, 120); const f = pool[Math.floor(Math.random() * pool.length)]; let t = f; while (t === f) t = pool[Math.floor(Math.random() * pool.length)]; $('#pFrom').value = D.lib.artists[f]; $('#pTo').value = D.lib.artists[t]; run(); };
+  const fm = $('#foundMore'); if (fm) fm.onclick = () => { CX.found += 15; V.connections(); jumpTo('c-found', false); };
+  const lm = $('#likeMore'); if (lm) lm.onclick = () => { CX.like += 12; V.connections(); jumpTo('c-new', false); };
+  pathBlock(CX.from, CX.to);
+};
+function pathBlock(f, t) {
+  const out = $('#pathOut');
+  if (f === t) { out.innerHTML = '<p class="muted">Pick two different artists.</p>'; return; }
+  const path = shortestPath(f, t);
+  if (!path) { out.innerHTML = `<p class="muted">You never played these two anywhere near each other, so there is no path between them.</p>`; return; }
+  const songs = pathSongs(path), A = D.lib.artists;
+  out.innerHTML = `<p class="path">${path.map(a => artistLink(a)).join('<span class="arrow" aria-hidden="true"> → </span><span class="sr-only"> then </span>')}</p>
+    <p class="sub">${path.length - 2 === 0 ? 'You played these two back to back.' : `${path.length - 2} ${path.length - 2 === 1 ? 'artist' : 'artists'} in between.`} Each pair of songs is one you played back to back.</p>
+    <ol class="rank-list">${songs.map((s, i) => songRow(s, '', i + 1)).join('')}</ol>
+    ${mixTools(songs, `From ${A[f]} to ${A[t]}`, `A path from ${A[f]} to ${A[t]} through my listening history.`)}`;
+}
+
 // ---------------- What's hidden
 V.hidden = () => {
   const rules = D.meta.rules, per = rules.map(() => new Map());
@@ -827,11 +1415,11 @@ V.hidden = () => {
 V.notfound = () => { view().innerHTML = '<section class="page-intro"><h1>This page does not exist</h1><p><a href="#/">Go to your story</a></p></section>'; };
 
 // ================================================================ chrome: router, player, search, filters
-const NAV = [['story', 'Story'], ['rediscover', 'Rediscover'], ['binge', 'Binge'], ['explore', 'Explore'], ['patterns', 'Patterns']];
-const ALIASES = { '': 'story', overview: 'story', wrapped: 'story', library: 'explore', covers: 'explore', trends: 'patterns', habits: 'patterns', sessions: 'patterns', discovery: 'patterns', podcasts: 'patterns', onthisday: 'rediscover', excluded: 'hidden' };
+const NAV = [['story', 'Story'], ['eras', 'Eras'], ['rediscover', 'Rediscover'], ['binge', 'Binge'], ['connections', 'Connections'], ['explore', 'Explore'], ['patterns', 'Patterns']];
+const ALIASES = { '': 'story', overview: 'story', wrapped: 'story', library: 'explore', covers: 'explore', trends: 'patterns', habits: 'patterns', sessions: 'patterns', discovery: 'patterns', podcasts: 'patterns', onthisday: 'rediscover', excluded: 'hidden', era: 'eras', lifecycles: 'eras', paths: 'connections', discover: 'connections' };
 function route() {
   if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
-  tip.hide(); closeSearch();
+  tip.hide(); closeSearch(); MIX.clear();
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   let name = parts[0] || 'story'; name = ALIASES[name] || name;
   const args = parts.slice(1);
@@ -841,7 +1429,7 @@ function route() {
   try { fn(args); } catch (e) { console.error(e); view().innerHTML = `<section class="page-intro"><h1>This page could not be shown</h1><p>Reload the page to try again.</p><pre class="muted">${esc(e.stack || e)}</pre></section>`; }
   const navName = (NAV.find(n => n[0] === section) || [0, ''])[1];
   document.title = `${navName ? navName + ', ' : ''}Listening History`;
-  if (!(name === 'story' && args[0])) window.scrollTo(0, 0);
+  if (!((name === 'story' || name === 'eras') && args[0])) window.scrollTo(0, 0);
   view().focus({ preventScroll: true });
 }
 function invalidate() { memoStore.clear(); }
@@ -924,7 +1512,7 @@ function renderFilters() {
   $('#rulesReset').onclick = () => { F.personal = true; F.rules = Object.fromEntries(D.meta.rules.map(r => [r.id, r.enabled])); store.set('lh-rules', F.rules); store.set('lh-personal', true); filtersChanged(); };
 }
 function filtersChanged() { searchIdx = null; renderFilters(); updateFilterBtn(); route(); }
-function updateFilterBtn() { const on = F.personal ? D.meta.rules.filter(r => F.rules[r.id]).length : 0; $('#filtersBtn').textContent = on ? `What counts (${on} filters on)` : 'What counts (all plays)'; }
+function updateFilterBtn() { const on = F.personal ? D.meta.rules.filter(r => F.rules[r.id]).length : 0; $('#filtersBtn').textContent = on ? `What counts (${on} on)` : 'What counts (all plays)'; $('#filtersBtn').title = on ? `${on} filters are on` : 'No filters are on'; }
 
 async function init() {
   try { await load(); } catch (e) { view().innerHTML = `<section class="page-intro"><h1>The listening data did not load</h1><p>Check your connection and reload the page. (${esc(e.message)})</p></section>`; return; }
@@ -946,6 +1534,7 @@ async function init() {
   document.addEventListener('click', e => {
     if (!e.target.closest('.search')) closeSearch();
     const pb = e.target.closest('[data-play]'); if (pb) { e.preventDefault(); play(pb.dataset.play); }
+    const mb = e.target.closest('[data-mix-act]'); if (mb) { e.preventDefault(); mixAction(mb); }
     if (e.target.closest('#searchResults a')) { s.value = ''; closeSearch(); }
   });
   document.addEventListener('keydown', e => { if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); s.focus(); } });
@@ -956,6 +1545,7 @@ async function init() {
     try { localStorage.setItem('lh-theme', document.documentElement.dataset.theme); } catch (e) { /* storage unavailable */ }
   };
   addEventListener('hashchange', route);
+  spotify.finishLogin();
   let lastW = innerWidth; addEventListener('resize', debounce(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; route(); } }, 250));
   route();
 }
