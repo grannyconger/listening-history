@@ -29,11 +29,13 @@ Static site on GitHub Pages (public, `noindex`). Data is pre-built JSON from `sc
 - Same song across releases counts as one song. Exact duplicate records are removed.
 
 ## Brand Commitments
-The owner's design rules (written for classroom slides) are binding for this site:
-- Simple, presenter-style, calm and bright. Big text, plenty of open space, one idea per section.
-- Small, subtle color on major elements, with each color tied to one idea and used the same way everywhere.
+The owner's design rules are binding for this site. They were updated on 2026-11-08 for the music yearbook redesign (see DESIGN.md):
+- A music yearbook: each year is a spread with artist portraits and superlatives you can play. Bold and bright, with big type and plenty of open space. Lists open with big album covers so pages never become long runs of identical rows.
+- Two school colors carry the site: navy for fields and headings, gold for rules and highlights. Album art and artist photos bring the rest of the color. In charts, navy means music, orange podcasts and green audiobooks.
+- Type: Alfa Slab One for years and headings, Atkinson Hyperlegible Next for everything else.
+- Gold rules may separate things (spread gutters, section and superlative lines). Use them with purpose, not between every item.
 - Plain, direct language for readers with no background knowledge. Labels give information or instructions, never summaries. No taglines or slogans. No em dashes or semicolons.
-- Avoid: tags and pills, excessive italics, Instrument Serif, negative letter spacing, over-detailed UI, overused dividers, color shades and opacities (tinted boxes, faded colors), containers with borders, overly detailed diagrams, verbose text, code breadcrumbs, section numbering, eyebrows, dithering, ASCII images, squircles, excessive mono fonts, ALL CAPS subtitles, gradient backgrounds, periods in titles.
+- Avoid: cards and containers with borders, tinted boxes and faded colors, tags and pills, gradient backgrounds, the dark black-and-green "music app" look, dashboard stat tiles (write numbers as sentences), excessive italics, Instrument Serif, negative letter spacing, over-detailed UI or diagrams, verbose text, code breadcrumbs, section numbering, eyebrows (small labels above headings), dithering, ASCII images, squircles, excessive mono fonts, ALL CAPS subtitles, periods in titles.
 - Exception confirmed by the owner: heatmaps may use light-to-dark shading because it carries data.
 
 ## Evidence on Hand
